@@ -18,6 +18,7 @@
 mono_crash.*
 
 # Build results
+/_out/*
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -427,3 +428,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Keep the local package source present in a fresh clone.
+!/_out/
+!/_out/packages/
+!/_out/packages/.gitkeep

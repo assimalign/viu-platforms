@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <TargetFrameworkLatest>net10.0</TargetFrameworkLatest>
+    <TargetFrameworkForLibraries>$(TargetFrameworkLatest)</TargetFrameworkForLibraries>
+    <TargetFrameworkForApplications>$(TargetFrameworkLatest)</TargetFrameworkForApplications>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+    <RollForward>LatestPatch</RollForward>
+  </PropertyGroup>
+</Project>

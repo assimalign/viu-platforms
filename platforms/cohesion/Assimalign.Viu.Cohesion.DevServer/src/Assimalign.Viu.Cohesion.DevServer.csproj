@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(TargetFrameworkForApplications)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Package-integrated Cohesion development server for Viu browser applications.</Description>
+    <PackageTags>Viu;Cohesion;WebAssembly;WASM;DevelopmentServer</PackageTags>
+    <ToolsPublishDirectory>$(BaseIntermediateOutputPath)tools-publish\$(Configuration)\$(TargetFramework)\</ToolsPublishDirectory>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddDevServerToolsToPackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Assimalign.Cohesion.Web.Server" />
+    <ProjectReference Include="..\..\Assimalign.Viu.Cohesion.Web\src\Assimalign.Viu.Cohesion.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\build\Assimalign.Viu.Cohesion.DevServer.targets" Pack="true" PackagePath="build\Assimalign.Viu.Cohesion.DevServer.targets" />
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+  <Target Name="PublishDevServerTools" BeforeTargets="AddDevServerToolsToPackage">
+    <MSBuild
+      Projects="$(MSBuildProjectFullPath)"
+      Targets="Publish"
+      BuildInParallel="false"
+      Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);PublishDir=$(ToolsPublishDirectory);SelfContained=false;UseAppHost=false;PublishSingleFile=false;RuntimeIdentifier=;NoBuild=true;NoRestore=true" />
+  </Target>
+
+  <Target Name="AddDevServerToolsToPackage" DependsOnTargets="PublishDevServerTools">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(ToolsPublishDirectory)**\*">
+        <PackagePath>tools\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+</Project>

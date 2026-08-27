@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <PackageId>Assimalign.Viu.Cohesion.Templates</PackageId>
+    <PackageType>Template</PackageType>
+    <Description>Project templates for Viu Browser WebAssembly applications hosted by Cohesion Web.</Description>
+    <PackageTags>dotnet-new;templates;Viu;WebAssembly;Cohesion</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <EnableDefaultItems>false</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="content\**\*"
+          Exclude="content\**\bin\**;content\**\obj\**"
+          Pack="true"
+          PackagePath="content/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

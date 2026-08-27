@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <ViuPlatformsShippingLibrary>true</ViuPlatformsShippingLibrary>
+    <!-- Cohesion's packaged HTTP/Web surface is annotated RequiresPreviewFeatures. -->
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <Description>Cohesion Web middleware for Viu browser assets, development refresh, and server rendering.</Description>
+    <PackageTags>Viu;Cohesion;WebAssembly;WASM;SSR</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Assimalign.Cohesion.FileSystem" />
+    <PackageReference Include="Assimalign.Cohesion.FileSystem.Globbing" />
+    <PackageReference Include="Assimalign.Cohesion.FileSystem.Physical" />
+    <PackageReference Include="Assimalign.Cohesion.Http" />
+    <PackageReference Include="Assimalign.Cohesion.Web" />
+    <PackageReference Include="Assimalign.Viu.ServerRenderer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Assimalign.Cohesion.FileSystem" Version="10.0.2-preview.1" />
+    <PackageVersion Include="Assimalign.Cohesion.FileSystem.Globbing" Version="10.0.2-preview.1" />
+    <PackageVersion Include="Assimalign.Cohesion.FileSystem.Physical" Version="10.0.2-preview.1" />
+    <PackageVersion Include="Assimalign.Cohesion.Http" Version="10.0.2" />
+    <PackageVersion Include="Assimalign.Cohesion.Web" Version="10.0.2" />
+    <PackageVersion Include="Assimalign.Cohesion.Web.Server" Version="10.0.2" />
+    <PackageVersion Include="Assimalign.Viu.ServerRenderer" Version="10.0.0-beta.11" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+</Project>

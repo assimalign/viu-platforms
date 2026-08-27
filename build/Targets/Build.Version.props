@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <ViuPlatformsVersionPrefix>10.0.0</ViuPlatformsVersionPrefix>
+    <ViuPlatformsVersionSuffix>alpha.2</ViuPlatformsVersionSuffix>
+    <ViuPlatformsVersion>$(ViuPlatformsVersionPrefix)-$(ViuPlatformsVersionSuffix)</ViuPlatformsVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <VersionPrefix Condition="'$(VersionPrefix)' == '' or '$(VersionPrefix)' == '1.0.0'">$(ViuPlatformsVersionPrefix)</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">$(ViuPlatformsVersionSuffix)</VersionSuffix>
+    <PackageOutputPath Condition="'$(PackageOutputPath)' == ''">$(ViuPlatformsOutputPathForPackages)</PackageOutputPath>
+  </PropertyGroup>
+</Project>

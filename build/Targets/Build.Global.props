@@ -1,0 +1,28 @@
+<Project>
+  <PropertyGroup>
+    <ViuPlatformsRepositoryDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\..'))\</ViuPlatformsRepositoryDirectory>
+    <ViuPlatformsOutputPath>$(ViuPlatformsRepositoryDirectory)_out</ViuPlatformsOutputPath>
+    <ViuPlatformsOutputPathForPackages>$(ViuPlatformsOutputPath)\packages</ViuPlatformsOutputPathForPackages>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>preview</LangVersion>
+    <!-- Cohesion 10.0.2 annotates its complete public HTTP/Web surface as preview. -->
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <Authors>Assimalign</Authors>
+    <Company>Assimalign</Company>
+    <Copyright>© Assimalign 2026</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/assimalign/viu-platforms</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(ViuPlatformsShippingLibrary)' == 'true'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

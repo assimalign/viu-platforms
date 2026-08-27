@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/platforms/" />
+  <Folder Name="/platforms/aspnetcore/" />
+  <Folder Name="/platforms/cohesion/">
+    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.Web/src/Assimalign.Viu.Cohesion.Web.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.Web/test/Assimalign.Viu.Cohesion.Web.Tests.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.DevServer/src/Assimalign.Viu.Cohesion.DevServer.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.DevServer/test/Assimalign.Viu.Cohesion.DevServer.Tests.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.Templates/Assimalign.Viu.Cohesion.Templates.csproj" />
+  </Folder>
+</Solution>
