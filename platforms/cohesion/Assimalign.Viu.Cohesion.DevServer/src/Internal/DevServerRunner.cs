@@ -4,7 +4,9 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Cohesion.Web;
+using Assimalign.Cohesion.Web.Hosting;
 
 namespace Assimalign.Viu.Cohesion.DevServer;
 
@@ -20,25 +22,24 @@ internal static class DevServerRunner
         ArgumentNullException.ThrowIfNull(output);
 
         IReadOnlyList<DevServerAddress> addresses = DevServerAddressResolver.Resolve(options, aspNetCoreUrls);
-        IWebApplicationPipeline pipeline = DevServerPipelineFactory.Create(options);
+        await using WebApplication application = DevServerApplicationFactory.Create(options, addresses);
+        IWebApplicationServer server = application.Context.ServiceProvider.GetRequiredService<IWebApplicationServer>();
 
-        await using TrackedHttpServer server = new(pipeline, addresses);
         await server.StartAsync(cancellationToken).ConfigureAwait(false);
-
-        foreach (DevServerAddress address in addresses)
+        try
         {
-            await DevServerReadiness.WriteAsync(output, address.Url, cancellationToken).ConfigureAwait(false);
-        }
+            foreach (DevServerAddress address in addresses)
+            {
+                await PortReadinessProbe.WaitAsync(address, cancellationToken).ConfigureAwait(false);
+                await DevServerReadiness.WriteAsync(output, address.Url, cancellationToken).ConfigureAwait(false);
+            }
 
-        Task cancellation = WaitForCancellationAsync(cancellationToken);
-        Task completed = await Task.WhenAny(server.Completion, cancellation).ConfigureAwait(false);
-        if (completed == server.Completion)
+            await WaitForCancellationAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
         {
-            await server.Completion.ConfigureAwait(false);
-            throw new InvalidOperationException("All HTTP listener loops stopped unexpectedly.");
+            await server.StopAsync(CancellationToken.None).ConfigureAwait(false);
         }
-
-        await server.StopAsync().ConfigureAwait(false);
     }
 
     private static async Task WaitForCancellationAsync(CancellationToken cancellationToken)

@@ -9,7 +9,10 @@ This repository connects Viu applications to host platforms without adding host-
 - `platforms/cohesion/Assimalign.Viu.Cohesion.Templates` — the `viu-cohesion` project template package.
 - `platforms/aspnetcore` — reserved and intentionally empty.
 
-The central build is deliberately smaller than Viu's in-repository build. Dependencies use ordinary `PackageReference` and `ProjectReference` items with NuGet Central Package Management; this repository does not reproduce Viu's name-resolved `ViuProjectReference` machinery.
+The central build is deliberately smaller than Viu's in-repository build. Package dependencies use
+NuGet Central Package Management, project dependencies use ordinary `ProjectReference` items, and
+Cohesion Web is consumed through its SDK/shared-framework model; this repository does not reproduce
+Viu's name-resolved `ViuProjectReference` machinery.
 
 ## Local package feeds
 
@@ -20,28 +23,32 @@ The central build is deliberately smaller than Viu's in-repository build. Depend
 - this repository's `_out\packages`
 - nuget.org for test infrastructure
 
-The bridge pins Viu ServerRenderer at `10.0.0-beta.11` and the Browser SDK contract at
-`10.0.0-beta.10`, Cohesion's packaged HTTP/Web/Server surface at `10.0.2`, and the separately
-versioned Cohesion file-system family at `10.0.2-preview.1`. Repack the reference repositories
-before building here when those package APIs change.
+The bridge pins Viu ServerRenderer at `10.0.0-beta.11`, the Browser SDK contract at
+`10.0.0-beta.10`, and `Assimalign.Cohesion.Sdk.Web` plus the `Assimalign.Cohesion.App.Web` shared
+framework at `10.0.0-beta.1`. Repack the reference repositories before building here when those
+package APIs change.
 
-The development server uses plain `Microsoft.NET.Sdk` plus
-`Assimalign.Cohesion.Web.Server` 10.0.2. The packaged-consumer path through
-`Assimalign.Cohesion.Sdk.Web` was tested first, but the matching `App.Web.Ref` and
-`App.Web.Runtime.win-arm64` 10.0.1-preview.1 packs in the local feed contain only the area-root
-assemblies; they do not contain Web Hosting, StaticFiles, or Testing. The server therefore owns a
-tracked listener loop over the public packaged transport API. Its framework-dependent, no-RID
-publish copies all Cohesion assemblies into the NuGet `tools/` payload and depends only on an
-installed Microsoft.NETCore.App 10 runtime.
+Both the bridge library and development server use `Assimalign.Cohesion.Sdk.Web`. The bridge's
+package records its App/App.Web framework references and its only ordinary dependency is Viu
+ServerRenderer. The development server composes `WebApplication.CreateBuilder()`, then its package
+publish copies the Cohesion runtime-pack assemblies into `tools/`; consumers need only an installed
+Microsoft.NETCore.App 10 runtime and do not install Cohesion shared frameworks globally.
 
-## Local development loop
+## Package consumption
 
-Pack and install the template, then create a sample:
+Assimalign prerelease packages are published through the organization GitHub Packages feed. Set a
+GitHub identity and a personal access token with `read:packages`, then install the template and
+create a sample:
 
 ```powershell
-pwsh scripts/Install-Local.ps1
-dotnet new install Assimalign.Viu.Cohesion.Templates `
-  --add-source C:\Source\repos\assimalign\viu-platforms\_out\packages
+$env:GITHUB_ACTOR = "your-github-login"
+$env:GITHUB_TOKEN = "your-read-packages-pat"
+dotnet nuget add source https://nuget.pkg.github.com/assimalign/index.json `
+  --name github `
+  --username $env:GITHUB_ACTOR `
+  --password $env:GITHUB_TOKEN `
+  --store-password-in-clear-text
+dotnet new install Assimalign.Viu.Cohesion.Templates::10.0.0-beta.1
 dotnet new viu-cohesion --name HelloViu
 cd HelloViu
 dotnet watch
@@ -77,6 +84,6 @@ pwsh scripts/Install-Local.ps1
 Packages are written to `_out\packages`. The install script restores, builds, tests, publishes the development-server payload, and packs the three shipping projects without committing or installing anything globally.
 
 All shipping projects use `net10.0`, preview C# syntax, explicit usings, nullable annotations, and
-AOT compatibility analysis. Cohesion 10.0.2 marks its complete HTTP/Web surface with
-`RequiresPreviewFeatures`; this repository must therefore opt in at the assembly level even though
-the bridge itself avoids reflection, dynamic code, and runtime manifest discovery.
+AOT compatibility analysis. Cohesion `10.0.0-beta.1` marks its complete HTTP/Web surface with
+`RequiresPreviewFeatures`; this repository opts in at the assembly level while the bridge itself
+continues to avoid reflection, dynamic code, and runtime manifest discovery.

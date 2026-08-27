@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+
 using Assimalign.Cohesion.Http;
 using Assimalign.Cohesion.Web;
 using Assimalign.Viu.Cohesion.Web.Internal;
@@ -8,17 +10,53 @@ using Assimalign.Viu.ServerRenderer;
 namespace Assimalign.Viu.Cohesion.Web;
 
 /// <summary>
-/// Adds Viu hosting features to a Cohesion Web application pipeline.
+/// Adds Viu hosting features to a Cohesion Web application builder and pipeline.
 /// </summary>
 public static class WebApplicationViuExtensions
 {
+    extension(IWebApplicationBuilder builder)
+    {
+        /// <summary>
+        /// Registers a Viu browser application with a Cohesion Web application builder.
+        /// </summary>
+        /// <param name="configure">
+        /// An optional callback that configures content, manifest, fallback, and cross-origin
+        /// isolation behavior.
+        /// </param>
+        /// <returns>The same application builder for continued composition.</returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the application builder is <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">Thrown when a configured path is invalid.</exception>
+        /// <remarks>
+        /// Registration captures an immutable configuration feature and the development-refresh
+        /// environment at builder time. It performs no service-container registration or
+        /// request-time service lookup. Call
+        /// <c>UseViuApplication()</c> on the built Cohesion application to install it.
+        /// </remarks>
+        public IWebApplicationBuilder AddViuApplication(Action<ViuApplicationOptions>? configure = null)
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+
+            ViuApplicationOptions options = new();
+            configure?.Invoke(options);
+
+            ViuApplicationConfiguration configuration = ViuApplicationConfiguration.Create(options);
+            return builder.AddFeature(new ViuApplicationFeature(configuration));
+        }
+    }
+
     extension(IWebApplicationPipelineBuilder builder)
     {
         /// <summary>
         /// Serves a manifest-described Viu browser application, including its SPA fallback and
         /// development browser-refresh HTTP surface.
         /// </summary>
-        /// <param name="configure">An optional callback that supplies content and manifest paths.</param>
+        /// <param name="configure">
+        /// An optional callback that supplies content and manifest paths. When omitted on a built
+        /// Cohesion application, the registration from <c>AddViuApplication()</c> is used when
+        /// present; otherwise the existing default options are preserved.
+        /// </param>
         /// <returns>The same pipeline builder for continued composition.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the pipeline builder is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown when a configured path is invalid.</exception>
@@ -26,6 +64,17 @@ public static class WebApplicationViuExtensions
         public IWebApplicationPipelineBuilder UseViuApplication(Action<ViuApplicationOptions>? configure = null)
         {
             ArgumentNullException.ThrowIfNull(builder);
+
+            if (configure is null && builder is IWebApplication application)
+            {
+                ViuApplicationFeature? feature = application.Context.Features
+                    .OfType<ViuApplicationFeature>()
+                    .LastOrDefault();
+                if (feature is not null)
+                {
+                    return builder.Use(new ViuApplicationMiddleware(feature.Configuration));
+                }
+            }
 
             ViuApplicationOptions options = new();
             configure?.Invoke(options);

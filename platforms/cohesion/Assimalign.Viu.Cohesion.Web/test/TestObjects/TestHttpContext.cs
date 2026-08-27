@@ -38,7 +38,13 @@ internal sealed class TestHttpContext : IHttpContext
 
     public IDictionary<string, object?> Items { get; } = new Dictionary<string, object?>(StringComparer.Ordinal);
 
-    public CancellationToken RequestAborted => _requestAborted;
+    public CancellationToken RequestCancelled => _requestAborted;
+
+    public void Cancel()
+    {
+    }
+
+    public Task CancelAsync() => Task.CompletedTask;
 
     public string ReadResponseBody()
     {

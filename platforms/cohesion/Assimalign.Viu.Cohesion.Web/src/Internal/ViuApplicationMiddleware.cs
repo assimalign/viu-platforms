@@ -204,7 +204,7 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
         {
             try
             {
-                _ = await _deltaCache.AddAsync(context.Request.Body, context.RequestAborted).ConfigureAwait(false);
+                _ = await _deltaCache.AddAsync(context.Request.Body, context.RequestCancelled).ConfigureAwait(false);
                 context.Response.StatusCode = HttpStatusCode.Ok;
             }
             catch (JsonException)
@@ -262,7 +262,7 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
 
         if (injectRefresh)
         {
-            string html = await File.ReadAllTextAsync(asset.PhysicalPath, context.RequestAborted).ConfigureAwait(false);
+            string html = await File.ReadAllTextAsync(asset.PhysicalPath, context.RequestCancelled).ConfigureAwait(false);
             byte[] payload = Encoding.UTF8.GetBytes(InjectBrowserRefresh(html));
             headers.Remove(ContentEncodingHeader);
             headers.Remove(ETagHeader);
@@ -271,7 +271,7 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
             headers[ContentLengthHeader] = payload.Length.ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (context.Request.Method == HttpMethod.Get)
             {
-                await context.Response.Body.WriteAsync(payload, context.RequestAborted).ConfigureAwait(false);
+                await context.Response.Body.WriteAsync(payload, context.RequestCancelled).ConfigureAwait(false);
             }
             return;
         }
@@ -284,7 +284,7 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
         }
 
         await using FileStream source = File.OpenRead(asset.PhysicalPath);
-        await source.CopyToAsync(context.Response.Body, context.RequestAborted).ConfigureAwait(false);
+        await source.CopyToAsync(context.Response.Body, context.RequestCancelled).ConfigureAwait(false);
     }
 
     private static async Task WriteBytesAsync(
@@ -299,7 +299,7 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
         context.Response.Headers[ContentLengthHeader] = payload.Length.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (context.Request.Method != HttpMethod.Head)
         {
-            await context.Response.Body.WriteAsync(payload, context.RequestAborted).ConfigureAwait(false);
+            await context.Response.Body.WriteAsync(payload, context.RequestCancelled).ConfigureAwait(false);
         }
     }
 

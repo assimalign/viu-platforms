@@ -2,17 +2,17 @@
 
 ## Hosting boundary
 
-The local Cohesion feed's `Assimalign.Cohesion.Sdk.Web` 10.0.1-preview.1 targeting/runtime packs do not contain the hosting family required to build this application. The server therefore uses plain `Microsoft.NET.Sdk`, `Assimalign.Cohesion.Web.Server` 10.0.2, and the project/package reference to `Assimalign.Viu.Cohesion.Web`. This is the packaged-consumer path that restores and builds on the current feed.
+The server uses `Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1` and the App/App.Web shared frameworks.
+`WebApplication.CreateBuilder()` is the composition root: `AddViuApplication` registers the bridge,
+`builder.Server.UseServer(...UseHttp1...)` configures every resolved URL, and the built application
+installs the registered middleware through `UseViuApplication`.
 
-The 10.0.2 package surface exposes the concrete transport API through `Assimalign.Cohesion.Http.Transports` and `Assimalign.Cohesion.Transports`. The dev server creates one `HttpConnectionListener` per configured URL and owns the following lifecycle:
-
-1. Start every accept loop as a tracked `Task`.
-2. Probe each bound TCP endpoint before announcing readiness.
-3. Track every accepted connection task until it completes.
-4. On Ctrl+C or SIGTERM, cancel the shared shutdown token and dispose all listeners to unblock accept.
-5. Await accept loops, then await the stable in-flight connection snapshot.
-
-Each connection is disposed deterministically. Every received `IHttpContext` runs through the composed Cohesion pipeline, is sent once, and is then disposed. An application or wire failure aborts only that connection. The implementation does not use the feed's `WebApplicationServer`; this keeps shutdown ownership and task observation explicit in the executable.
+The current Cohesion builder registers its default server as `IWebApplicationServer`, not as an
+`IHostService`. Consequently `WebApplication.RunAsync()` does not start that server. The DevServer
+follows Cohesion's own integration-test pattern: it resolves the builder-created
+`IWebApplicationServer`, calls `StartAsync`, probes every bound endpoint before announcing
+readiness, waits for the shutdown token, and calls `StopAsync` to drain connections. This is a
+current upstream hosting-lifecycle gap, not a return to the removed custom listener loop.
 
 ## URL policy
 
@@ -22,11 +22,16 @@ Only clear-text HTTP is accepted because the package has no certificate/TLS CLI 
 
 The target is evaluation-time configuration because IDE/F5 consumers read the Viu SDK's run properties without necessarily executing a custom target. Paths are quoted and normalized to absolute paths. `WasmEnableThreads=true` appends `--apply-cop-headers`; URL selection is deliberately left to `ASPNETCORE_URLS` or the server's loopback default.
 
-The NuGet pack invokes a framework-dependent, no-RID `dotnet publish` and places the complete publish directory under `tools/`. This makes Cohesion framework assemblies copy-local and avoids requiring the unpublished `Assimalign.Cohesion.App.Web` shared framework on a consumer machine.
+The NuGet pack invokes a framework-dependent nested publish and places the complete publish
+directory under `tools/`. A private publish property marks the App/App.Web runtime packs
+`RuntimePackAlwaysCopyLocal`; the build host RID selects those packs, whose closure is managed
+assemblies. The runtimeconfig therefore retains only `Microsoft.NETCore.App`, while Cohesion and
+Viu assemblies are carried beside the tool. No Cohesion shared-framework installation, app host,
+or self-contained Microsoft runtime is required on the consumer machine.
 
 ## Constraints and omitted surface
 
 - This host is development-only and supports HTTP/1.1. TLS, HTTP/2, HTTP/3, production hardening, and access logging are outside its contract.
-- Cohesion has no packaged Web testing host in the feed, so tests cover parsing, property selection, readiness text, and a real loopback HTTP transport.
+- Tests cover parsing, property selection, readiness text, builder-level composition, and a real loopback HTTP transport.
 - The optional browser debug websocket proxy is not implemented in this phase. Browser refresh and hot reload are provided by `Assimalign.Viu.Cohesion.Web`.
 - AOT compatibility is not asserted for this executable. The shipping middleware library owns the AOT-sensitive JSON and rendering paths; this app is shipped as a normal framework-dependent tool payload.

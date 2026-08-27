@@ -18,12 +18,12 @@ the `Assimalign.Viu.Cohesion.DevServer` package owns the development-host select
 line. This keeps the application portable and prevents Cohesion hosting assemblies from entering
 the WebAssembly output.
 
-## Local-feed contract
+## Package-feed contract
 
-Phase 2 packages are consumed from local feeds. The template exposes three creation parameters
-that replace feed-path placeholders in `NuGet.config`. Their defaults match the integration
-workspace, while callers can provide paths for another checkout. A later publication initiative
-can remove these local sources without changing the application or hosting boundary.
+Published Assimalign packages are consumed from the organization GitHub Packages feed. The
+generated `NuGet.config` reads `GITHUB_ACTOR` and `GITHUB_TOKEN`; the token must grant
+`read:packages`. nuget.org remains available for Microsoft and third-party dependencies. The
+template contains no machine-specific feed paths or checkout parameters.
 
 ## AOT and trimming
 

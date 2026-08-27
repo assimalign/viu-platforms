@@ -2,23 +2,23 @@
 
 This project is a Viu Browser WebAssembly application hosted during development by Cohesion Web.
 
-## Local feeds
+## Package feed
 
-`NuGet.config` points to the three package feeds selected when the project was created:
+The generated `NuGet.config` restores Assimalign packages from the organization GitHub Packages
+feed and public dependencies from nuget.org. Before restoring, set credentials for a GitHub
+account whose personal access token has `read:packages`:
 
-- Viu packages, including `Assimalign.Viu.Sdk.Browser`;
-- Cohesion packages used by the development server; and
-- Viu Platforms packages, including `Assimalign.Viu.Cohesion.DevServer`.
-
-The default values target the Phase 2 integration checkouts. Update the paths if the repositories
-or feeds move.
+```powershell
+$env:GITHUB_ACTOR = "your-github-login"
+$env:GITHUB_TOKEN = "your-read-packages-pat"
+dotnet restore
+```
 
 ## Development loop
 
-Restore once, then start the normal Viu watch loop:
+After restoring, start the normal Viu watch loop:
 
 ```powershell
-dotnet restore
 dotnet watch
 ```
 

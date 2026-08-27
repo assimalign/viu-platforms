@@ -7,7 +7,8 @@ namespace Assimalign.Viu.Cohesion.Web;
 /// Configures the files and response policy used to host a Viu browser application.
 /// </summary>
 /// <remarks>
-/// Paths are captured when <c>UseViuApplication</c> composes the middleware. The resulting
+/// Paths are captured when <c>AddViuApplication</c> registers the application or when the
+/// pipeline-only <c>UseViuApplication</c> overload composes the middleware. The resulting
 /// middleware performs no service lookup and does not mutate these options at request time.
 /// </remarks>
 public sealed class ViuApplicationOptions

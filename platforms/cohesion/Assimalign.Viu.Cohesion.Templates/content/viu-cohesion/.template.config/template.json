@@ -16,32 +16,6 @@
     "language": "C#",
     "type": "project"
   },
-  "symbols": {
-    "viuFeed": {
-      "type": "parameter",
-      "datatype": "text",
-      "defaultValue": "C:\\Source\\repos\\assimalign\\viu\\_out\\packages",
-      "displayName": "Viu package feed",
-      "description": "Path to the local feed containing Viu SDK and runtime packages.",
-      "replaces": "__VIU_LOCAL_FEED__"
-    },
-    "cohesionFeed": {
-      "type": "parameter",
-      "datatype": "text",
-      "defaultValue": "C:\\Source\\repos\\assimalign\\cohesion\\_out\\packages",
-      "displayName": "Cohesion package feed",
-      "description": "Path to the local feed containing Cohesion packages.",
-      "replaces": "__COHESION_LOCAL_FEED__"
-    },
-    "platformsFeed": {
-      "type": "parameter",
-      "datatype": "text",
-      "defaultValue": "C:\\Source\\repos\\assimalign\\viu-platforms\\_out\\packages",
-      "displayName": "Viu Platforms package feed",
-      "description": "Path to the local feed containing the Viu Cohesion dev-server package.",
-      "replaces": "__VIU_PLATFORMS_LOCAL_FEED__"
-    }
-  },
   "primaryOutputs": [
     {
       "path": "ViuCohesionApplication.csproj"

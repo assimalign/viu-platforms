@@ -15,7 +15,11 @@ dotnet exec Assimalign.Viu.Cohesion.DevServer.dll
 
 `ASPNETCORE_URLS` has precedence over `--urls`. With neither setting, the server reserves an available IPv4 loopback port and binds an explicit URL. Every successful bind writes both `Now listening on: <url>` and `App url: <url>`; the first line is the Viu RunHost and dotnet-watch readiness contract.
 
-The application composes `Assimalign.Viu.Cohesion.Web` for manifest-driven assets, SPA fallback, content types, compression selection, optional cross-origin isolation headers, and the browser-refresh surface. The server itself owns Cohesion's HTTP transport listener lifetime.
+The executable uses `WebApplication.CreateBuilder()`, registers the Viu application through
+`AddViuApplication`, configures HTTP/1.1 through `builder.Server`, builds the Cohesion application,
+and installs it with `app.UseViuApplication()`. That bridge provides manifest-driven assets, SPA
+fallback, content types, compression selection, optional cross-origin isolation headers, and the
+browser-refresh surface.
 
 ## Package behavior
 
@@ -28,4 +32,7 @@ Unless `ViuBrowserDevServerCommand` is already set, the package target sets:
 
 Package presence therefore wins over the Viu SDK's default `WasmAppHost` choice. To opt out while retaining the package reference, explicitly set `ViuBrowserDevServerCommand` and the related custom-server properties; setting only `ViuBrowserDevServer=WasmAppHost` is intentionally not an override in this initial integration.
 
-The payload is published without an app host, runtime identifier, or self-contained runtime. Cohesion and Viu runtime assemblies are copy-local under `tools/`; the consumer needs only a compatible Microsoft .NET 10 runtime.
+The packaging publish selects the build host RID only to resolve Cohesion's all-managed App/App.Web
+runtime packs. It emits no app host or self-contained Microsoft runtime. Cohesion and Viu runtime
+assemblies are copy-local under `tools/`, and the generated runtimeconfig names only
+`Microsoft.NETCore.App`; the consumer needs a compatible Microsoft .NET 10 runtime.

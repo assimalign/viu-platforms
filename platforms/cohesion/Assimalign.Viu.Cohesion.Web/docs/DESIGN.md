@@ -2,17 +2,23 @@
 
 ## Hosting boundary
 
-The bridge is middleware, not a Cohesion application. Public composition follows Cohesion's
-builder-verb convention and stores immutable configuration in middleware instances. It never
-creates a listener, service provider, shared framework, or process lifetime. That boundary keeps
-the package usable by any Cohesion Web host and respects Cohesion's hosting-isolation rule.
+The Cohesion Web application builder is the bridge's guiding public surface. `AddViuApplication`
+extends `IWebApplicationBuilder`, captures immutable configuration as an application feature, and
+performs no container registration or configuration binding. `UseViuApplication` installs that
+configuration on the built application; the pipeline-only overload and both explicit server-render
+verbs remain available for non-hosting pipeline implementations.
 
-The current feed makes this boundary concrete. `Assimalign.Cohesion.Sdk.Web` restores, but its
-matching `App.Web.Ref` and `App.Web.Runtime.win-arm64` 10.0.1-preview.1 packs contain only the area
-root rather than Web Hosting, StaticFiles, or Testing. The library therefore uses the packaged root
-middleware seam and owns the small amount of required asset serving directly. Cohesion 10.0.2
-annotates its public HTTP/Web API as preview, so this assembly must opt into and expose that preview
-surface even though its implementation avoids runtime-preview APIs of its own.
+This is an intentional Phase 4 deviation from the earlier bridge rule that prohibited a
+`Web.Hosting` dependency. Cohesion's hosting-isolation rule constrains feature projects inside the
+Cohesion repository; this external platform package exists specifically to compose the Cohesion
+host. It therefore consumes `Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1` and its App/App.Web shared
+frameworks rather than direct Cohesion library packages. The bridge still does not create a
+listener, service provider, or process lifetime, and registration remains dependency-free.
+
+The package's nuspec carries framework references for `Assimalign.Cohesion.App` and
+`Assimalign.Cohesion.App.Web`; its only ordinary dependency is
+`Assimalign.Viu.ServerRenderer` `10.0.0-beta.11`. Cohesion's beta.1 HTTP/Web API remains a preview
+surface, so this assembly opts in while avoiding runtime-preview mechanisms of its own.
 
 ## Manifest model and asset resolution
 
@@ -33,10 +39,11 @@ variants remain grouped by public route so each request can select content encod
 
 Every root combination is canonicalized and checked before opening a file. The catalog is immutable
 after construction, while the managed-delta cache is the only synchronized mutable feature state.
-Asset bodies stream from disk. Conditional validation and byte ranges are deferred in this first
-package because the corresponding Cohesion StaticFiles implementation is not shipped in a
-consumable package. Refresh injection intentionally buffers only HTML, removes stale
-encoding/validator headers, recalculates content length, and forces `no-store`.
+Asset bodies stream from disk. Conditional validation and byte ranges remain deferred: the
+App.Web-delivered Cohesion StaticFiles implementation does not consume Viu's static-web-assets
+endpoint graph, so direct delegation would lose fingerprint and content-encoding selection.
+Refresh injection intentionally buffers only HTML, removes stale encoding/validator headers,
+recalculates content length, and forces `no-store`.
 
 ## Browser-refresh compatibility
 
@@ -101,7 +108,7 @@ registrations must be complete before this transition.
 
 Writes flow through one stateful UTF-8 encoder that leaves the borrowed response stream open.
 This preserves surrogate pairs across Viu chunks and preserves exact awaited flush/backpressure
-boundaries. Encoder completion observes `IHttpContext.RequestAborted` and occurs before a failed
+boundaries. Encoder completion observes `IHttpContext.RequestCancelled` and occurs before a failed
 buffered response is cleared, so final encoder bytes cannot be written after the replacement response
 has truncated the stream. The adaptor receives that same request-abort token and passes it to
 `IServerRenderRequestScope.DisposeAsync(CancellationToken)` on every teardown path.

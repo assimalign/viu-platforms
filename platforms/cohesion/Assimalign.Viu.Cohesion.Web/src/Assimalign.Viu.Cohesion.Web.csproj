@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1">
   <PropertyGroup>
     <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
     <ViuPlatformsShippingLibrary>true</ViuPlatformsShippingLibrary>
-    <!-- Cohesion's packaged HTTP/Web surface is annotated RequiresPreviewFeatures. -->
+    <!-- This external bridge intentionally composes Cohesion Web.Hosting through App.Web. -->
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
     <Description>Cohesion Web middleware for Viu browser assets, development refresh, and server rendering.</Description>
     <PackageTags>Viu;Cohesion;WebAssembly;WASM;SSR</PackageTags>
@@ -10,11 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Assimalign.Cohesion.FileSystem" />
-    <PackageReference Include="Assimalign.Cohesion.FileSystem.Globbing" />
-    <PackageReference Include="Assimalign.Cohesion.FileSystem.Physical" />
-    <PackageReference Include="Assimalign.Cohesion.Http" />
-    <PackageReference Include="Assimalign.Cohesion.Web" />
     <PackageReference Include="Assimalign.Viu.ServerRenderer" />
   </ItemGroup>
 

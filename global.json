@@ -3,5 +3,9 @@
     "version": "10.0.400",
     "rollForward": "latestPatch",
     "allowPrerelease": false
+  },
+  "msbuild-sdks": {
+    "Assimalign.Cohesion.Sdk": "10.0.0-beta.1",
+    "Assimalign.Cohesion.Sdk.Web": "10.0.0-beta.1"
   }
 }

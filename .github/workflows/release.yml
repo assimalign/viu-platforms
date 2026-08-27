@@ -1,0 +1,213 @@
+# Official Viu Platforms release pipeline, mirroring the assimalign/cohesion release model at
+# this repository's scale.
+#
+# A published GitHub Release is the only package-publication trigger. The release tag must match
+# the complete centrally declared ViuPlatformsVersion (build/Targets/Build.Version.props),
+# including the prerelease suffix. The validated set is staged in GitHub Packages; nuget.org
+# promotion is deliberately not wired yet — beta releases stop at the GitHub Packages feed, the
+# same policy the sibling repositories apply to this channel.
+#
+# Every `uses:` is pinned to a commit SHA with a trailing version comment, matching the sibling
+# repositories' supply-chain rule.
+name: release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: resolve release version
+    if: github.event_name == 'release' && github.event.release.draft == false
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.commit.outputs.commit }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.release.tag_name }}
+
+      # The tag resolves to a commit once, here; downstream jobs check out the commit so a moved
+      # tag can never publish something this run did not validate (the cohesion model).
+      - name: Resolve release commit
+        id: commit
+        shell: pwsh
+        run: |
+          & git fetch origin main --no-tags
+          if ($LASTEXITCODE -ne 0) {
+            throw "Fetching origin/main failed with exit code $LASTEXITCODE."
+          }
+
+          $releaseCommit = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Resolving the checked-out commit failed.'
+          }
+
+          & git merge-base --is-ancestor $releaseCommit origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Release builds must use a commit reachable from main.'
+          }
+
+          "commit=$releaseCommit" |
+            Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release commit: $releaseCommit"
+
+      - name: Resolve package version
+        id: version
+        shell: pwsh
+        env:
+          VIU_PLATFORMS_RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          [xml]$versionProps = Get-Content -LiteralPath 'build/Targets/Build.Version.props' -Raw
+          $propertyGroup = $versionProps.Project.PropertyGroup | Select-Object -First 1
+          $prefix = [string]$propertyGroup.ViuPlatformsVersionPrefix
+          $suffix = [string]$propertyGroup.ViuPlatformsVersionSuffix
+          if (-not $prefix) {
+            throw 'ViuPlatformsVersionPrefix was not found in build/Targets/Build.Version.props.'
+          }
+
+          $canonicalVersion = if ($suffix) { "$prefix-$suffix" } else { $prefix }
+          $tagMatch = [System.Text.RegularExpressions.Regex]::Match(
+            $env:VIU_PLATFORMS_RELEASE_TAG,
+            '^v(?<version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?)$',
+            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+          if (-not $tagMatch.Success) {
+            throw 'GitHub releases must use a vMAJOR.MINOR.PATCH[-PRERELEASE] tag.'
+          }
+
+          $releaseVersion = $tagMatch.Groups['version'].Value
+          if ($releaseVersion -ne $canonicalVersion) {
+            throw "Release tag version $releaseVersion does not match canonical ViuPlatformsVersion $canonicalVersion."
+          }
+
+          "version=$releaseVersion" |
+            Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release package version: $releaseVersion"
+
+  build-test-pack:
+    name: validate and pack
+    needs: prepare
+    if: github.event_name == 'release' && github.event.release.draft == false
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      version: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.commit }}
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
+        run: dotnet restore Assimalign.Viu.Platforms.slnx --configfile .github/NuGet.ci.config
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build Assimalign.Viu.Platforms.slnx --configuration Release --no-restore
+
+      - name: Test
+        shell: pwsh
+        run: dotnet test Assimalign.Viu.Platforms.slnx --configuration Release --no-build
+
+      - name: Pack
+        shell: pwsh
+        run: |
+          dotnet pack platforms/cohesion/Assimalign.Viu.Cohesion.Web/src/Assimalign.Viu.Cohesion.Web.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Viu.Cohesion.DevServer/src/Assimalign.Viu.Cohesion.DevServer.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Viu.Cohesion.Templates/Assimalign.Viu.Cohesion.Templates.csproj --configuration Release --no-build
+
+      - name: Verify packed set
+        shell: pwsh
+        env:
+          VIU_PLATFORMS_PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $expectedPackages = @(
+            "Assimalign.Viu.Cohesion.Web.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Viu.Cohesion.DevServer.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Viu.Cohesion.Templates.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg")
+          foreach ($expectedPackage in $expectedPackages) {
+            $packagePath = Join-Path '_out/packages' $expectedPackage
+            if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
+              throw "The pack step did not produce $expectedPackage."
+            }
+          }
+
+          Write-Host "All $($expectedPackages.Count) release packages are present."
+
+      - name: Upload package release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Assimalign.Viu.Platforms.Packages
+          path: _out/packages/*.nupkg
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-github-packages:
+    name: stage packages in GitHub Packages
+    needs: build-test-pack
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: viu-platforms-github-packages-release-${{ needs.build-test-pack.outputs.version }}
+      cancel-in-progress: false
+    steps:
+      - name: Download validated packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: Assimalign.Viu.Platforms.Packages
+          path: _release/packages
+
+      - name: Stage validated packages
+        shell: pwsh
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
+          VIU_PLATFORMS_PACKAGE_VERSION: ${{ needs.build-test-pack.outputs.version }}
+        run: |
+          $packageFiles = @(Get-ChildItem -LiteralPath '_release/packages' -Filter '*.nupkg' |
+            Where-Object { $_.Name -like "*.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg" })
+          if ($packageFiles.Count -ne 3) {
+            throw "Expected 3 release packages at $env:VIU_PLATFORMS_PACKAGE_VERSION, found $($packageFiles.Count)."
+          }
+
+          foreach ($packageFile in $packageFiles) {
+            # --skip-duplicate: a release version is immutable; re-running the pipeline for the
+            # same tag must be a no-op on the feed, never a replacement.
+            & dotnet nuget push $packageFile.FullName `
+              --source 'https://nuget.pkg.github.com/assimalign/index.json' `
+              --api-key $env:GITHUB_PACKAGES_TOKEN `
+              --no-symbols `
+              --skip-duplicate
+            if ($LASTEXITCODE -ne 0) {
+              throw "Publishing $($packageFile.Name) to GitHub Packages failed with exit code $LASTEXITCODE."
+            }
+          }
+
+          @"
+          ## Staged release packages
+
+          Staged all $($packageFiles.Count) validated Viu Platforms packages at version
+          ``$($env:VIU_PLATFORMS_PACKAGE_VERSION)`` in the Assimalign GitHub Packages feed.
+          "@ |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

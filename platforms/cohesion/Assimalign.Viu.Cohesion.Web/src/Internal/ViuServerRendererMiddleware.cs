@@ -104,19 +104,19 @@ internal sealed class ViuServerRendererMiddleware : IWebApplicationMiddleware
         ServerRenderResult result;
         await using (CohesionServerRenderOutput output = new(
             context.Response.Body,
-            context.RequestAborted))
+            context.RequestCancelled))
         {
             ServerRenderRequest<IHttpContext> request = new(rootComponent, context);
             result = documentShell is null
                 ? await _adaptor.RenderAsync(
                     request,
                     output,
-                    context.RequestAborted).ConfigureAwait(false)
+                    context.RequestCancelled).ConfigureAwait(false)
                 : await _adaptor.RenderDocumentAsync(
                     request,
                     output,
                     documentShell,
-                    context.RequestAborted).ConfigureAwait(false);
+                    context.RequestCancelled).ConfigureAwait(false);
         }
 
         if (result.Succeeded)

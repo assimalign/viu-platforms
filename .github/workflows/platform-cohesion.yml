@@ -1,0 +1,60 @@
+# Continuous validation for the Cohesion platform area. Mirrors the sibling repositories'
+# per-area workflow model (assimalign/cohesion resource-web.yml): every push that touches the
+# area builds and tests the whole platform solution.
+#
+# Restore uses .github/NuGet.ci.config (GitHub Packages + nuget.org) instead of the repo-root
+# NuGet.config, whose machine-local ../viu and ../cohesion _out feeds do not exist in CI.
+# Cross-repo Assimalign packages restore with PACKAGES_READ_TOKEN when the organization has one
+# configured, falling back to the workflow token.
+name: Platform - Cohesion
+
+on:
+  push:
+    paths:
+      - 'platforms/**'
+      - 'build/**'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - '.github/NuGet.ci.config'
+      - '.github/workflows/platform-cohesion.yml'
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    name: build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
+        run: dotnet restore Assimalign.Viu.Platforms.slnx --configfile .github/NuGet.ci.config
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build Assimalign.Viu.Platforms.slnx --configuration Release --no-restore
+
+      - name: Test
+        shell: pwsh
+        run: dotnet test Assimalign.Viu.Platforms.slnx --configuration Release --no-build

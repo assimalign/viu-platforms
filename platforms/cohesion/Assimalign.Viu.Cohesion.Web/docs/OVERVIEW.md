@@ -1,19 +1,55 @@
 # Assimalign.Viu.Cohesion.Web
 
 `Assimalign.Viu.Cohesion.Web` is the host bridge between a Viu application and a Cohesion Web
-pipeline. It adds two explicit pipeline verbs:
+pipeline. Cohesion's application builder is the guiding composition surface:
 
+```csharp
+WebApplicationBuilder builder = WebApplication.CreateBuilder();
+builder.AddViuApplication(options =>
+{
+    options.ContentRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+});
+
+WebApplication app = builder.Build();
+app.UseViuApplication();
+```
+
+The public verbs are:
+
+- `AddViuApplication` captures immutable application configuration on `IWebApplicationBuilder`.
 - `UseViuApplication` serves a browser application's static-web-assets graph, its single-page
   application fallback, and the development browser-refresh HTTP surface.
 - `UseViuServerRenderer` adapts Viu's host-neutral `ServerRenderAdaptor<IHttpContext>` to a
   Cohesion response stream.
 
-The library depends only on Cohesion's packaged area-root abstractions (`Web`, `Http`, and the
-file-system family) plus Viu's packaged ServerRenderer. It deliberately does not reference
-`Assimalign.Cohesion.Web.Hosting`, `Web.Server`, or `Web.StaticFiles`; hosting remains an
-application concern. This direct-root implementation is required by the current local feed,
-whose `Assimalign.Cohesion.App.Web` targeting and runtime packs do not contain the advertised
-hosting, static-files, or testing assemblies.
+The library consumes `Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1`, so Cohesion's `App` and
+`App.Web` shared frameworks provide the HTTP, file-system, hosting, and feature assemblies. Its
+only ordinary NuGet dependency is `Assimalign.Viu.ServerRenderer` `10.0.0-beta.11`. The original
+pipeline-only `UseViuApplication(Action<ViuApplicationOptions>?)` remains available for custom
+pipeline implementations; on a built Cohesion application, omitting the callback uses the
+configuration previously registered by `AddViuApplication`.
+
+The package's framework references are name-only NuGet metadata, so a direct package consumer must
+also use Cohesion's SDK to supply the beta.1 targeting/runtime-pack mapping:
+
+```xml
+<Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1">
+  <ItemGroup>
+    <PackageReference Include="Assimalign.Viu.Cohesion.Web" Version="10.0.0-beta.1" />
+  </ItemGroup>
+</Project>
+```
+
+Pin both SDKs because `Sdk.Web` chains the base SDK through an unversioned import:
+
+```json
+{
+  "msbuild-sdks": {
+    "Assimalign.Cohesion.Sdk": "10.0.0-beta.1",
+    "Assimalign.Cohesion.Sdk.Web": "10.0.0-beta.1"
+  }
+}
+```
 
 ## Browser application guarantees
 
@@ -39,8 +75,9 @@ downstream server renderer owns application documents.
 
 This first-pass host preserves manifest cache headers but does not yet evaluate conditional or
 range requests. `If-Match`, `If-None-Match`, `If-Modified-Since`, `Range`, and `If-Range` therefore
-receive a complete 200 response. The unpackaged Cohesion StaticFiles feature implements those
-policies, but its behavior cannot currently be delegated to by a package consumer.
+receive a complete 200 response. Cohesion StaticFiles is available through App.Web, but this bridge
+retains its manifest-aware resolver; delegating conditional/range policy without losing endpoint
+variants and static-web-assets routing remains future work.
 
 `ApplyCrossOriginIsolationHeaders` applies these headers to every response observed by the Viu
 middleware:
@@ -80,13 +117,13 @@ request-root factory. The basic overload calls `RenderAsync`; the document overl
 receives a `Func<IHttpContext, IServerRenderDocumentShell>`, creates a shell for that request, and
 calls `RenderDocumentAsync`. Both set an HTML/no-store response, create a typed
 `ServerRenderRequest`, transcode Viu's character chunks to UTF-8, await response writes and flushes,
-and propagate `IHttpContext.RequestAborted`. They never own or dispose the Cohesion context or
+and propagate `IHttpContext.RequestCancelled`. They never own or dispose the Cohesion context or
 response stream. Non-GET requests and GET requests rejected by the optional predicate continue
 through the pipeline.
 
 The current response body is a replaceable memory buffer, so `CohesionServerRenderOutput` reports
 `ResponseCommitted == false`; attempted writes and flushes do not imply transport commitment. On a
-render failure, encoder completion observes `RequestAborted` and finishes before the middleware
+render failure, encoder completion observes `RequestCancelled` and finishes before the middleware
 clears the buffered body and installs a clean 500 response. The failure is then rethrown for the
 application's exception boundary. A future streaming implementation must delegate
 `ResponseCommitted` to Cohesion's monotonic, transport-confirmed `HasStarted` state. If that state is
