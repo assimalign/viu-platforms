@@ -45,16 +45,27 @@ jobs:
         with:
           global-json-file: global.json
 
+      # MSBuild resolves project SDKs (Assimalign.Cohesion.Sdk.Web) through the default NuGet
+      # settings hierarchy on every dotnet invocation — --configfile only reaches the restore
+      # command — so CI replaces the repo NuGet.config (machine-local feeds) with the CI one.
+      - name: Use CI NuGet configuration
+        shell: pwsh
+        run: Copy-Item .github/NuGet.ci.config NuGet.config -Force
+
       - name: Restore
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
-        run: dotnet restore Assimalign.Viu.Platforms.slnx --configfile .github/NuGet.ci.config
+        run: dotnet restore Assimalign.Viu.Platforms.slnx
 
       - name: Build
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet build Assimalign.Viu.Platforms.slnx --configuration Release --no-restore
 
       - name: Test
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet test Assimalign.Viu.Platforms.slnx --configuration Release --no-build
