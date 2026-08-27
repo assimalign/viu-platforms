@@ -9,7 +9,7 @@ The generated project contains:
 - a Viu single-file counter component;
 - a Browser application entry point using explicit generated-component registration;
 - the HTML and JavaScript boot assets required by the Viu Browser SDK;
-- a reference to `Assimalign.Viu.Cohesion.DevServer` `10.0.0-alpha.2`; and
+- a reference to `Assimalign.Viu.Cohesion.DevServer` `10.0.0-alpha.3`; and
 - a parameterized local-feed `NuGet.config` for the Phase 2 integration loop.
 
 The template pins `Assimalign.Viu.Sdk` and `Assimalign.Viu.Sdk.Browser` to

@@ -46,11 +46,18 @@ internal static class BrowserRefreshClientScript
 
           async function updateStaticFile(path) {
             if (!path || !path.endsWith('.css')) { location.reload(); return; }
-            try { await fetch(applicationPath('/_framework/clear-browser-cache'), { cache: 'no-store' }); }
-            catch (error) { console.debug(error); }
+            // The stylesheet branch must never reload: the Viu run-host bridge replays one
+            // UpdateStaticFile per tracked stylesheet on every connection, so a reload here
+            // reconnects and replays forever. This matches the dotnet-watch client contract:
+            // swap the matching links in place and treat an unreferenced stylesheet as a no-op.
             const links = [...document.querySelectorAll('link[rel="stylesheet"]')]
               .filter(link => link.href.includes(path));
-            if (links.length === 0) { location.reload(); return; }
+            if (links.length === 0) {
+              console.debug('No stylesheet link matches ' + path + '; ignoring the update.');
+              return;
+            }
+            try { await fetch(applicationPath('/_framework/clear-browser-cache'), { cache: 'no-store' }); }
+            catch (error) { console.debug(error); }
             links.forEach(link => {
               const replacement = link.cloneNode();
               replacement.href = link.href.split('?', 1)[0] + '?nonce=' + Date.now();
