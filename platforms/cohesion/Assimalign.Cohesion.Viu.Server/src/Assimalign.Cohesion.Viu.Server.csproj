@@ -1,0 +1,21 @@
+<Project Sdk="Assimalign.Cohesion.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- This external bridge intentionally composes Cohesion Web.Hosting through App.Web. -->
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <Description>Cohesion Web middleware for Viu browser assets, development refresh, and server rendering.</Description>
+    <PackageTags>Viu;Cohesion;WebAssembly;WASM;SSR</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Assimalign.Cohesion.Viu.Hosting\src\Assimalign.Cohesion.Viu.Hosting.csproj" />
+    <PackageReference Include="Assimalign.Viu.ServerRenderer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

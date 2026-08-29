@@ -10,16 +10,20 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $repositoryDirectory = Split-Path -Parent $PSScriptRoot
 $solutionPath = Join-Path $repositoryDirectory 'Assimalign.Viu.Platforms.slnx'
-$webProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Viu.Cohesion.Web/src/Assimalign.Viu.Cohesion.Web.csproj'
-$developmentServerProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Viu.Cohesion.DevServer/src/Assimalign.Viu.Cohesion.DevServer.csproj'
-$templatesProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Viu.Cohesion.Templates/Assimalign.Viu.Cohesion.Templates.csproj'
+$hostingProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj'
+$browserHostingProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj'
+$serverProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj'
+$developmentServerProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj'
+$templatesProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj'
 
 Push-Location $repositoryDirectory
 try {
     dotnet restore $solutionPath
     dotnet build $solutionPath --configuration $Configuration --no-restore
     dotnet test $solutionPath --configuration $Configuration --no-build
-    dotnet pack $webProjectPath --configuration $Configuration --no-build
+    dotnet pack $hostingProjectPath --configuration $Configuration --no-build
+    dotnet pack $browserHostingProjectPath --configuration $Configuration --no-build
+    dotnet pack $serverProjectPath --configuration $Configuration --no-build
     dotnet pack $developmentServerProjectPath --configuration $Configuration --no-build
     dotnet pack $templatesProjectPath --configuration $Configuration --no-build
 }

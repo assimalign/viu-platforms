@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Assimalign",
+  "classifications": [
+    "Viu",
+    "Web",
+    "WebAssembly",
+    "Cohesion"
+  ],
+  "identity": "Assimalign.Cohesion.Viu.Templates.BrowserApplication",
+  "name": "Viu Browser WebAssembly application with Cohesion",
+  "shortName": "viu-cohesion",
+  "sourceName": "CohesionViuApplication",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "primaryOutputs": [
+    {
+      "path": "CohesionViuApplication.csproj"
+    }
+  ]
+}

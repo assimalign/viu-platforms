@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Cohesion hosting and dependency injection for Viu applications.</Description>
+    <PackageTags>Viu;Cohesion;Hosting;DependencyInjection</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Assimalign.Cohesion.Configuration" />
+    <PackageReference Include="Assimalign.Cohesion.DependencyInjection" />
+    <PackageReference Include="Assimalign.Cohesion.Hosting" />
+    <PackageReference Include="Assimalign.Viu.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

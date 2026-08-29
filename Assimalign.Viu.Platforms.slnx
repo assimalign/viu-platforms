@@ -2,10 +2,14 @@
   <Folder Name="/platforms/" />
   <Folder Name="/platforms/aspnetcore/" />
   <Folder Name="/platforms/cohesion/">
-    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.Web/src/Assimalign.Viu.Cohesion.Web.csproj" />
-    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.Web/test/Assimalign.Viu.Cohesion.Web.Tests.csproj" />
-    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.DevServer/src/Assimalign.Viu.Cohesion.DevServer.csproj" />
-    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.DevServer/test/Assimalign.Viu.Cohesion.DevServer.Tests.csproj" />
-    <Project Path="platforms/cohesion/Assimalign.Viu.Cohesion.Templates/Assimalign.Viu.Cohesion.Templates.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/test/Assimalign.Cohesion.Viu.Hosting.Tests.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/test/Assimalign.Cohesion.Viu.Hosting.Browser.Tests.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Server/test/Assimalign.Cohesion.Viu.Server.Tests.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/test/Assimalign.Cohesion.Viu.DevServer.Tests.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj" />
   </Folder>
 </Solution>

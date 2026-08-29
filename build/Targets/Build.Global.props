@@ -14,6 +14,8 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
+    <!-- Some .NET 10 SDK installations omit their optional PrunePackageData directory. -->
+    <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
     <Authors>Assimalign</Authors>
     <Company>Assimalign</Company>
     <Copyright>© Assimalign 2026</Copyright>
@@ -21,8 +23,4 @@
     <RepositoryUrl>https://github.com/assimalign/viu-platforms</RepositoryUrl>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(ViuPlatformsShippingLibrary)' == 'true'">
-    <IsAotCompatible>true</IsAotCompatible>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
 </Project>

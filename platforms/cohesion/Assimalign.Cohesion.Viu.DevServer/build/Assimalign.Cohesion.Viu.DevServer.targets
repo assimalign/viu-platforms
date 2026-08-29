@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup Condition="'$(ViuBrowserDevServerCommand)' == '' and ('$(ViuBrowserDevServer)' == '' or '$(ViuBrowserDevServer)' == 'WasmAppHost')">
+    <_CohesionViuDevServerToolsPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../tools'))</_CohesionViuDevServerToolsPath>
+    <_CohesionViuContentRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(OutputPath)wwwroot'))</_CohesionViuContentRoot>
+    <_CohesionViuEndpointsManifest>$([System.IO.Path]::GetFullPath('$(TargetDir)$(TargetName).staticwebassets.endpoints.json'))</_CohesionViuEndpointsManifest>
+    <_CohesionViuRuntimeManifest>$([System.IO.Path]::GetFullPath('$(TargetDir)$(TargetName).staticwebassets.runtime.json'))</_CohesionViuRuntimeManifest>
+    <_CohesionViuCopHeadersArgument Condition="'$(WasmEnableThreads)' == 'true'"> --apply-cop-headers</_CohesionViuCopHeadersArgument>
+
+    <ViuBrowserDevServer>Custom</ViuBrowserDevServer>
+    <ViuBrowserDevServerCommand>dotnet</ViuBrowserDevServerCommand>
+    <ViuBrowserDevServerArguments>exec &quot;$(_CohesionViuDevServerToolsPath)/Assimalign.Cohesion.Viu.DevServer.dll&quot; --content-root &quot;$(_CohesionViuContentRoot)&quot; --endpoints-manifest &quot;$(_CohesionViuEndpointsManifest)&quot; --runtime-manifest &quot;$(_CohesionViuRuntimeManifest)&quot;$(_CohesionViuCopHeadersArgument)</ViuBrowserDevServerArguments>
+    <ViuBrowserDevServerReadinessPrefix>Now listening on:</ViuBrowserDevServerReadinessPrefix>
+  </PropertyGroup>
+</Project>

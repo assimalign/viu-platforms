@@ -1,89 +1,136 @@
 # Viu platform integrations
 
-This repository connects Viu applications to host platforms without adding host-specific dependencies to the Viu runtime. The first integration targets Cohesion Web: a feature library serves Viu browser assets and adapts server rendering, a packaged development server replaces the default WebAssembly application host, and a `dotnet new` template wires the development loop.
+This repository packages host-platform integrations for Viu. The Cohesion family adds an
+optional Cohesion application host around Viu, a browser host, Cohesion Web asset and
+server-rendering middleware, a development server, and a `dotnet new` template. Ordinary Viu
+composition remains independent of these packages.
 
-## Layout
+## Cohesion packages
 
-- `platforms/cohesion/Assimalign.Viu.Cohesion.Web` — Cohesion Web middleware for static-web-assets manifests, SPA fallback, browser refresh, and the Viu server-renderer seam.
-- `platforms/cohesion/Assimalign.Viu.Cohesion.DevServer` — Cohesion-hosted command-line development server and its consumer MSBuild targets.
-- `platforms/cohesion/Assimalign.Viu.Cohesion.Templates` — the `viu-cohesion` project template package.
-- `platforms/aspnetcore` — reserved and intentionally empty.
+- `Assimalign.Cohesion.Viu.Hosting` — host-neutral `ViuApplication` and
+  `ViuApplicationBuilder`, backed by Cohesion dependency injection, configuration, and hosting.
+- `Assimalign.Cohesion.Viu.Hosting.Browser` — the explicit browser host registration that mounts
+  through `Assimalign.Viu.Browser`.
+- `Assimalign.Cohesion.Viu.Server` — Cohesion Web middleware for static-web-assets manifests, SPA
+  fallback, browser refresh, MIME mapping, cross-origin isolation, and Viu server rendering.
+- `Assimalign.Cohesion.Viu.DevServer` — a packaged Cohesion development server and the MSBuild
+  target that selects it from the Viu Browser SDK.
+- `Assimalign.Cohesion.Viu.Templates` — the `viu-cohesion` project template.
 
-The central build is deliberately smaller than Viu's in-repository build. Package dependencies use
-NuGet Central Package Management, project dependencies use ordinary `ProjectReference` items, and
-Cohesion Web is consumed through its SDK/shared-framework model; this repository does not reproduce
-Viu's name-resolved `ViuProjectReference` machinery.
+All five packages are versioned together. The current platform version is `10.0.0-beta.2`; it
+composes Cohesion `10.0.0-beta.1` and Viu `10.0.0-beta.11`.
 
-## Local package feeds
+## Application model
 
-`NuGet.config` uses the checked-out Viu and Cohesion package outputs:
+In an `Assimalign.Viu.Sdk.Browser` application, select the browser runtime explicitly before
+building. The project must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the
+Cohesion `10.0.0-beta.1` hosting surface remains preview-annotated:
 
-- `C:\Source\repos\assimalign\viu\_out\packages`
-- `C:\Source\repos\assimalign\cohesion\_out\packages`
-- this repository's `_out\packages`
-- nuget.org for test infrastructure
+```csharp
+using Assimalign.Cohesion.Viu.Hosting;
+using Assimalign.Cohesion.Viu.Hosting.Browser;
+using Assimalign.Cohesion.DependencyInjection;
+using Assimalign.Viu;
+using Assimalign.Viu.Components;
 
-The bridge pins Viu ServerRenderer at `10.0.0-beta.11`, the Browser SDK contract at
-`10.0.0-beta.10`, and `Assimalign.Cohesion.Sdk.Web` plus the `Assimalign.Cohesion.App.Web` shared
-framework at `10.0.0-beta.1`. Repack the reference repositories before building here when those
-package APIs change.
+ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 
-Both the bridge library and development server use `Assimalign.Cohesion.Sdk.Web`. The bridge's
-package records its App/App.Web framework references and its only ordinary dependency is Viu
-ServerRenderer. The development server composes `WebApplication.CreateBuilder()`, then its package
-publish copies the Cohesion runtime-pack assemblies into `tools/`; consumers need only an installed
-Microsoft.NETCore.App 10 runtime and do not install Cohesion shared frameworks globally.
+builder.Configuration["features:greeting"] = "enabled";
+builder.Services.AddSingleton<IGreetingService>(
+    _ => new GreetingService());
 
-## Package consumption
+builder.ConfigureApplication(options =>
+{
+    ComponentFactory components = new();
+    GeneratedViuComponents.Register(components);
 
-Assimalign prerelease packages are published through the organization GitHub Packages feed. Set a
-GitHub identity and a personal access token with `read:packages`, then install the template and
-create a sample:
+    options.Components = components;
+    options.RootComponent = new ComponentNode(
+        ComponentReference.ForName("App"));
+});
+builder.ConfigureBrowser();
 
-```powershell
-$env:GITHUB_ACTOR = "your-github-login"
-$env:GITHUB_TOKEN = "your-read-packages-pat"
-dotnet nuget add source https://nuget.pkg.github.com/assimalign/index.json `
-  --name github `
-  --username $env:GITHUB_ACTOR `
-  --password $env:GITHUB_TOKEN `
-  --store-password-in-clear-text
-dotnet new install Assimalign.Viu.Cohesion.Templates::10.0.0-beta.1
-dotnet new viu-cohesion --name HelloViu
-cd HelloViu
-dotnet watch
+ViuApplication application = builder.Build();
+await application.RunAsync();
 ```
 
-The generated project references `Assimalign.Viu.Cohesion.DevServer`. Its NuGet build target selects
-the Viu Browser SDK's custom-host contract, starts the packaged tool with the build output and both
-static-web-assets manifests, and waits for the exact `Now listening on:` readiness prefix. Explicit
-`ViuBrowserDevServerCommand` configuration wins over the package defaults.
+Service registrations on this WebAssembly path must use an existing instance or an explicit
+factory. Type-based activation, assembly scanning, configuration binding, and other
+reflection-driven composition are intentionally rejected or excluded. The built provider is
+supplied as Viu's `context.Services`; Cohesion configuration is registered in that provider.
 
-The executable can also be started directly:
+`Assimalign.Cohesion.Viu.Hosting` owns the provider and configuration manager it builds. User
+services start before the selected Viu runtime and stop after it. Browser cancellation follows the
+public Viu lifetime; Viu beta.11 does not yet expose a browser-unload notification hook.
+
+## Cohesion Web and server rendering
+
+`Assimalign.Cohesion.Viu.Server` preserves the existing `AddViuApplication`,
+`UseViuApplication`, and adaptor-based `UseViuServerRenderer` APIs. Its hosting-model overloads
+borrow the frozen composition from a `ViuApplication`, freeze the explicit server-render registry,
+and create a fresh `ServerRenderApplication` and `SsrContext` for every request. A Cohesion Web
+builder registration can link the borrowed server application's start/stop lifecycle to the Web
+host.
+
+The long-lived server application owns composition and middleware lifetime only; it never reuses a
+server-render application across requests. The convenience path shares the application provider
+and state. Applications that require a request-specific service provider should keep using the
+advanced `ServerRenderAdaptor<IHttpContext>` overload and provide their own request-scope factory.
+
+## Development server
+
+A browser application references both the browser hosting package and the development-server
+package:
+
+```xml
+<PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser"
+                  Version="10.0.0-beta.2" />
+<PackageReference Include="Assimalign.Cohesion.Viu.DevServer"
+                  Version="10.0.0-beta.2" />
+```
+
+The DevServer target selects the Viu Browser SDK's custom-host contract, runs the packaged
+`Assimalign.Cohesion.Viu.DevServer.dll`, supplies the build output and both static-web-assets
+manifests, and waits for `Now listening on:`. An explicit `ViuBrowserDevServerCommand` continues to
+take precedence. The executable may also be run directly:
 
 ```powershell
-dotnet exec Assimalign.Viu.Cohesion.DevServer.dll `
+dotnet exec Assimalign.Cohesion.Viu.DevServer.dll `
   --content-root C:\path\to\bin\Debug\net10.0\wwwroot `
   --endpoints-manifest C:\path\to\App.staticwebassets.endpoints.json `
   --runtime-manifest C:\path\to\App.staticwebassets.runtime.json `
   --urls http://127.0.0.1:5080
 ```
 
-`ASPNETCORE_URLS` overrides `--urls`; without either, the server reserves a loopback port. Add
-`--apply-cop-headers` for WebAssembly threads.
+`ASPNETCORE_URLS` overrides `--urls`; without either setting the server reserves a loopback port.
+Pass `--apply-cop-headers` for WebAssembly threads.
 
-## Build and test
+## Template
+
+After configuring credentials for the Assimalign GitHub Packages feed, install and generate the
+template:
 
 ```powershell
-dotnet restore Assimalign.Viu.Platforms.slnx
-dotnet build Assimalign.Viu.Platforms.slnx --no-restore
-dotnet test Assimalign.Viu.Platforms.slnx --no-build
-pwsh scripts/Install-Local.ps1
+dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.2
+dotnet new viu-cohesion --name HelloViu
+cd HelloViu
+dotnet watch
 ```
 
-Packages are written to `_out\packages`. The install script restores, builds, tests, publishes the development-server payload, and packs the three shipping projects without committing or installing anything globally.
+The generated application uses `ViuApplication.CreateBuilder()`, `ConfigureBrowser()`, explicit
+generated-component registration, and the Cohesion development server.
 
-All shipping projects use `net10.0`, preview C# syntax, explicit usings, nullable annotations, and
-AOT compatibility analysis. Cohesion `10.0.0-beta.1` marks its complete HTTP/Web surface with
-`RequiresPreviewFeatures`; this repository opts in at the assembly level while the bridge itself
-continues to avoid reflection, dynamic code, and runtime manifest discovery.
+## Local build
+
+`NuGet.config` restores this repository's packages plus the sibling Cohesion and Viu package
+outputs. Package versions are applied with `PackageReference Update` items in
+`Directory.Build.targets`; this repository does not use NuGet central package management.
+
+```powershell
+pwsh scripts/Install-Local.ps1 -Configuration Release
+```
+
+The script restores, builds, tests, and packs all five packages into `_out/packages`. Shipping
+libraries target `net10.0`, use explicit registration, and enable trimming/AOT compatibility
+analysis. The Server package carries Cohesion's App.Web framework reference; Hosting.Browser has
+only its host-neutral Hosting dependency and the Viu Browser runtime dependency.

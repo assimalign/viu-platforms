@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Browser runtime hosting for Cohesion Viu applications.</Description>
+    <PackageTags>Viu;Cohesion;Browser;WebAssembly;WASM</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Assimalign.Cohesion.Viu.Hosting\src\Assimalign.Cohesion.Viu.Hosting.csproj" />
+    <PackageReference Include="Assimalign.Viu.Browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

@@ -144,9 +144,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: |
-          dotnet pack platforms/cohesion/Assimalign.Viu.Cohesion.Web/src/Assimalign.Viu.Cohesion.Web.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Viu.Cohesion.DevServer/src/Assimalign.Viu.Cohesion.DevServer.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Viu.Cohesion.Templates/Assimalign.Viu.Cohesion.Templates.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj --configuration Release --no-build
 
       - name: Verify packed set
         shell: pwsh
@@ -154,9 +156,11 @@ jobs:
           VIU_PLATFORMS_PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           $expectedPackages = @(
-            "Assimalign.Viu.Cohesion.Web.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Viu.Cohesion.DevServer.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Viu.Cohesion.Templates.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg")
+            "Assimalign.Cohesion.Viu.Hosting.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Cohesion.Viu.Hosting.Browser.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Cohesion.Viu.Server.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Cohesion.Viu.DevServer.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Cohesion.Viu.Templates.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg")
           foreach ($expectedPackage in $expectedPackages) {
             $packagePath = Join-Path '_out/packages' $expectedPackage
             if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
@@ -200,8 +204,8 @@ jobs:
         run: |
           $packageFiles = @(Get-ChildItem -LiteralPath '_release/packages' -Filter '*.nupkg' |
             Where-Object { $_.Name -like "*.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg" })
-          if ($packageFiles.Count -ne 3) {
-            throw "Expected 3 release packages at $env:VIU_PLATFORMS_PACKAGE_VERSION, found $($packageFiles.Count)."
+          if ($packageFiles.Count -ne 5) {
+            throw "Expected 5 release packages at $env:VIU_PLATFORMS_PACKAGE_VERSION, found $($packageFiles.Count)."
           }
 
           foreach ($packageFile in $packageFiles) {

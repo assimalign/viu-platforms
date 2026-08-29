@@ -1,0 +1,24 @@
+<Project Sdk="Assimalign.Cohesion.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <KnownFrameworkReference Update="Assimalign.Cohesion.App;Assimalign.Cohesion.App.Web"
+                             RuntimePackAlwaysCopyLocal="true" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Assimalign.Cohesion.Viu.Server.csproj" />
+  </ItemGroup>
+</Project>
