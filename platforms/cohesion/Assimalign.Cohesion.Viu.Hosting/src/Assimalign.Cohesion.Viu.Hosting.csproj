@@ -9,10 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Assimalign.Cohesion.Configuration" />
-    <PackageReference Include="Assimalign.Cohesion.DependencyInjection" />
-    <PackageReference Include="Assimalign.Cohesion.Hosting" />
-    <PackageReference Include="Assimalign.Viu.Core" />
+    <ViuPlatformPackageReference Include="Assimalign.Cohesion.Configuration" />
+    <ViuPlatformPackageReference Include="Assimalign.Cohesion.DependencyInjection" />
+    <ViuPlatformPackageReference Include="Assimalign.Cohesion.Hosting" />
+    <ViuPlatformPackageReference Include="Assimalign.Viu.Core" />
   </ItemGroup>
 
   <ItemGroup>

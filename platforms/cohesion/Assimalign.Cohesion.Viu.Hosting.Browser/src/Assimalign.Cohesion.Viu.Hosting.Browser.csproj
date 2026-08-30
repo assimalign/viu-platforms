@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Assimalign.Cohesion.Viu.Hosting\src\Assimalign.Cohesion.Viu.Hosting.csproj" />
-    <PackageReference Include="Assimalign.Viu.Browser" />
+    <ViuPlatformProjectReference Include="Assimalign.Cohesion.Viu.Hosting" />
+    <ViuPlatformPackageReference Include="Assimalign.Viu.Browser" />
   </ItemGroup>
 
   <ItemGroup>
