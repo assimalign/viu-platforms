@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <EnablePreviewFeatures>false</EnablePreviewFeatures>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ViuPlatformPackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <Compile Include="..\shared\*.cs" Link="Internal\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

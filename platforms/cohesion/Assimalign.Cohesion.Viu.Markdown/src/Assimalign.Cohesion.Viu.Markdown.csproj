@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Markdown content, generated catalogs, routing, and Viu components for Cohesion applications.</Description>
+    <PackageTags>Viu;Cohesion;Markdown;Content;AOT</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ViuPlatformProjectReference Include="Assimalign.Cohesion.Viu.Hosting" />
+    <ViuPlatformPackageReference Include="Assimalign.Cohesion.Content.Markdown" />
+    <ViuPlatformPackageReference Include="Assimalign.Viu.Router" />
+    <ViuPlatformPackageReference Include="Assimalign.Viu.Components" />
+    <ViuPlatformPackageReference Include="Assimalign.Viu.Reactivity" />
+    <ProjectReference Include="..\generator\Assimalign.Cohesion.Viu.Markdown.Generator.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <Compile Include="..\shared\*.cs" Link="Internal\%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+    <None Include="..\build\*" Pack="true" PackagePath="build\" />
+    <None Include="..\generator\bin\$(Configuration)\netstandard2.0\Assimalign.Cohesion.Viu.Markdown.Generator.dll" Pack="true" PackagePath="analyzers\dotnet\cs\" Visible="false" />
+  </ItemGroup>
+</Project>

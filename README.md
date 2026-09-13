@@ -2,7 +2,7 @@
 
 This repository packages host-platform integrations for Viu. The Cohesion family adds an
 optional Cohesion application host around Viu, a browser host, Cohesion Web asset and
-server-rendering middleware, a development server, and a `dotnet new` template. Ordinary Viu
+server-rendering middleware, Markdown content, a development server, and a `dotnet new` template. Ordinary Viu
 composition remains independent of these packages.
 
 ## Cohesion packages
@@ -16,8 +16,10 @@ composition remains independent of these packages.
 - `Assimalign.Cohesion.Viu.DevServer` — a packaged Cohesion development server and the MSBuild
   target that selects it from the Viu Browser SDK.
 - `Assimalign.Cohesion.Viu.Templates` — the `viu-cohesion` project template.
+- `Assimalign.Cohesion.Viu.Markdown` — generated Markdown catalogs, content sources, router-aware
+  node rendering, page and navigation components, and optional hosting registration.
 
-All five packages are versioned together. The current platform version is `10.0.0-beta.2`; it
+All six packages are versioned together. The current platform version is `10.0.0-beta.3`; it
 composes Cohesion `10.0.0-beta.1` and Viu `10.0.0-beta.11`.
 
 ## Application model
@@ -63,6 +65,35 @@ supplied as Viu's `context.Services`; Cohesion configuration is registered in th
 services start before the selected Viu runtime and stop after it. Browser cancellation follows the
 public Viu lifetime; Viu beta.11 does not yet expose a browser-unload notification hook.
 
+## Markdown content
+
+Reference `Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.3`. Its incremental generator reads
+`docs/**/*.md` by default and emits `GeneratedMarkdownContent.Catalog` in the application's root
+namespace. Titles, descriptions, status, and navigation order come from the Markdown files; there
+is no frontmatter or handwritten page table. Keep the Markdown files linked as static web assets
+when using HTTP content.
+
+```csharp
+builder.AddMarkdownContent(options =>
+{
+    options.Catalog = GeneratedMarkdownContent.Catalog;
+    options.Source = new HttpMarkdownContentSource(httpClient);
+});
+
+var routes = MarkdownRoutes.Create(GeneratedMarkdownContent.Catalog,
+    new MarkdownRouteOptions
+    {
+        LayoutComponent = ComponentReference.ForName("AppShell"),
+    });
+```
+
+Compose the router over `routes` in application services. The shell supplies `depth = 1` to its nested RouterView.
+`MarkdownPageView` renders immutable Viu nodes, including `RouterLink` components for known relative
+Markdown links. No anchor-click script is needed. Web history supports ordinary in-page fragments;
+the host owns its scroll policy. A file-system source and awaited server prefetch provide the SSR
+seam without depending on the Server package. See the [package overview](platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/docs/OVERVIEW.md)
+for project settings and plain service-provider composition.
+
 ## Cohesion Web and server rendering
 
 `Assimalign.Cohesion.Viu.Server` preserves the existing `AddViuApplication`,
@@ -84,9 +115,9 @@ package:
 
 ```xml
 <PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser"
-                  Version="10.0.0-beta.2" />
+                  Version="10.0.0-beta.3" />
 <PackageReference Include="Assimalign.Cohesion.Viu.DevServer"
-                  Version="10.0.0-beta.2" />
+                  Version="10.0.0-beta.3" />
 ```
 
 The DevServer target selects the Viu Browser SDK's custom-host contract, runs the packaged
@@ -111,7 +142,7 @@ After configuring credentials for the Assimalign GitHub Packages feed, install a
 template:
 
 ```powershell
-dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.2
+dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.3
 dotnet new viu-cohesion --name HelloViu
 cd HelloViu
 dotnet watch
@@ -130,7 +161,14 @@ outputs. Package versions are applied with `PackageReference Update` items in
 pwsh scripts/Install-Local.ps1 -Configuration Release
 ```
 
-The script restores, builds, tests, and packs all five packages into `_out/packages`. Shipping
+With the sibling `viu-docs` checkout present, verify the packed Markdown generator against its
+preserved 45-page route/asset baseline:
+
+```powershell
+pwsh scripts/Verify-MarkdownDocs.ps1
+```
+
+The script restores, builds, tests, and packs all six packages into `_out/packages`. Shipping
 libraries target `net10.0`, use explicit registration, and enable trimming/AOT compatibility
 analysis. The Server package carries Cohesion's App.Web framework reference; Hosting.Browser has
 only its host-neutral Hosting dependency and the Viu Browser runtime dependency.

@@ -39,7 +39,7 @@
     -->
     <ItemGroup>
         <!-- Index code projects ONCE. -->
-        <_ViuPlatformProject Include="$(ViuPlatformRepositoryDirectory)platforms\**\*.csproj" />
+        <_ViuPlatformProject Include="$(ViuPlatformsRepositoryDirectory)platforms\**\*.csproj" />
         <_ViuPlatformProject Update="@(_ViuPlatformProject)" ProjectId="%(_ViuPlatformProject.Filename)" ProjectPath="%(_ViuPlatformProject.Identity)" />
 
         <!-- Public refs -->

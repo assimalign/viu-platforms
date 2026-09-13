@@ -17,7 +17,7 @@ while listener ownership and process lifetime remain with the Cohesion Web host.
 
 The package's nuspec carries framework references for `Assimalign.Cohesion.App` and
 `Assimalign.Cohesion.App.Web`; its ordinary dependencies are
-`Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.2` and
+`Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.3` and
 `Assimalign.Viu.ServerRenderer` `10.0.0-beta.11`. Cohesion's beta.1 HTTP/Web API remains a preview
 surface, so this assembly opts in while avoiding runtime-preview mechanisms of its own.
 

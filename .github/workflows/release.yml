@@ -145,6 +145,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: |
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/src/Assimalign.Cohesion.Viu.Markdown.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj --configuration Release --no-build
@@ -157,6 +158,7 @@ jobs:
         run: |
           $expectedPackages = @(
             "Assimalign.Cohesion.Viu.Hosting.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Cohesion.Viu.Markdown.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.Hosting.Browser.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.Server.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.DevServer.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
@@ -204,8 +206,8 @@ jobs:
         run: |
           $packageFiles = @(Get-ChildItem -LiteralPath '_release/packages' -Filter '*.nupkg' |
             Where-Object { $_.Name -like "*.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg" })
-          if ($packageFiles.Count -ne 5) {
-            throw "Expected 5 release packages at $env:VIU_PLATFORMS_PACKAGE_VERSION, found $($packageFiles.Count)."
+          if ($packageFiles.Count -ne 6) {
+            throw "Expected 6 release packages at $env:VIU_PLATFORMS_PACKAGE_VERSION, found $($packageFiles.Count)."
           }
 
           foreach ($packageFile in $packageFiles) {

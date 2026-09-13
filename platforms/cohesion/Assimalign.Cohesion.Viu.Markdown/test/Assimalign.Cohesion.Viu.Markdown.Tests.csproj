@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ViuPlatformPackageReference Include="Microsoft.NET.Test.Sdk" />
+    <ViuPlatformPackageReference Include="Shouldly" />
+    <ViuPlatformPackageReference Include="xunit" />
+    <ViuPlatformPackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <ViuPlatformPackageReference Include="Assimalign.Viu.Testing" />
+    <ViuPlatformPackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </ViuPlatformPackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\Assimalign.Cohesion.Viu.Markdown.csproj" />
+    <ProjectReference Include="..\generator\Assimalign.Cohesion.Viu.Markdown.Generator.csproj" />
+    <None Update="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -5,29 +5,29 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.Configuration" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.DependencyInjection" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.Hosting" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.FileSystem" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.FileSystem.Globbing" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.FileSystem.Physical" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.Http" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.Web" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Cohesion.Web.Server" Version="$(CohesionVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Viu.Browser" Version="$(ViuVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Viu.Components" Version="$(ViuVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Viu.Core" Version="$(ViuVersion)" />
-    <_ViuPlatformPackage Update="Assimalign.Viu.ServerRenderer" Version="$(ViuVersion)" />
-    <_ViuPlatformPackage Update="Microsoft.NET.Test.Sdk" Version="18.6.0" />
-    <_ViuPlatformPackage Update="Shouldly" Version="4.3.0" />
-    <_ViuPlatformPackage Update="xunit" Version="2.9.3" />
-    <_ViuPlatformPackage Update="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="@(ViuPlatformPackageReference)" />
+    <ViuPlatformPackageReference Remove="@(ViuPlatformPackageReference)" />
+    <PackageReference Update="Assimalign.Cohesion.Configuration" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.Content.Markdown" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.DependencyInjection" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.Hosting" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.FileSystem" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.FileSystem.Globbing" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.FileSystem.Physical" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.Http" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.Web" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.Web.Server" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Viu.Browser" Version="$(ViuVersion)" />
+    <PackageReference Update="Assimalign.Viu.Components" Version="$(ViuVersion)" />
+    <PackageReference Update="Assimalign.Viu.Core" Version="$(ViuVersion)" />
+    <PackageReference Update="Assimalign.Viu.Reactivity" Version="$(ViuVersion)" />
+    <PackageReference Update="Assimalign.Viu.Router" Version="$(ViuVersion)" />
+    <PackageReference Update="Assimalign.Viu.Testing" Version="$(ViuVersion)" />
+    <PackageReference Update="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageReference Update="Assimalign.Viu.ServerRenderer" Version="$(ViuVersion)" />
+    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageReference Update="Shouldly" Version="4.3.0" />
+    <PackageReference Update="xunit" Version="2.9.3" />
+    <PackageReference Update="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
-
-
-      <ItemGroup>
-        <ViuPlatformPackageReference Update="@(_ViuPlatformPackage)" Version="%(_ViuPlatformPackage.Version)" />
-        <PackageReference Include="@(ViuPlatformPackageReference)" />
-        <ViuPlatformPackageReference Remove="@(ViuPlatformPackageReference)" />
-    </ItemGroup>
 </Project>

@@ -10,7 +10,7 @@ The generated project contains:
 - a Cohesion-shaped Viu application entry point using explicit browser-host and generated-component registration;
 - the HTML and JavaScript boot assets required by the Viu Browser SDK;
 - references to `Assimalign.Cohesion.Viu.Hosting.Browser` and
-  `Assimalign.Cohesion.Viu.DevServer` `10.0.0-beta.2`; and
+  `Assimalign.Cohesion.Viu.DevServer` `10.0.0-beta.3`; and
 - a `NuGet.config` that uses the Assimalign GitHub Packages feed with environment-provided
   credentials plus nuget.org.
 

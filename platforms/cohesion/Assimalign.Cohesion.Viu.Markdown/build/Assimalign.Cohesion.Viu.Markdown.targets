@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <ViuMarkdownGeneratedNamespace Condition="'$(ViuMarkdownGeneratedNamespace)' == '' and '$(RootNamespace)' != ''">$(RootNamespace)</ViuMarkdownGeneratedNamespace>
+    <ViuMarkdownGeneratedNamespace Condition="'$(ViuMarkdownGeneratedNamespace)' == ''">Assimalign.Cohesion.Viu.Markdown.Generated</ViuMarkdownGeneratedNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="ViuMarkdownContentPrefix" />
+    <CompilerVisibleProperty Include="ViuMarkdownRouteBase" />
+    <CompilerVisibleProperty Include="ViuMarkdownGeneratedNamespace" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ViuMarkdownContent" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ViuMarkdownSourceRelativePath" />
+  </ItemGroup>
+  <!-- Evaluation exposes the same AdditionalFiles to IDE project discovery and command-line
+       compilation, before Roslyn's editorconfig targets capture their metadata. -->
+  <PropertyGroup>
+    <_ViuMarkdownContentRootFullPath>$([System.IO.Path]::GetFullPath('$(ViuMarkdownContentRoot)', '$(MSBuildProjectDirectory)'))</_ViuMarkdownContentRootFullPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ViuMarkdownContent Include="$(_ViuMarkdownContentRootFullPath)\$(ViuMarkdownContentGlob)"
+                        Exclude="@(ViuMarkdownContent)" Condition="'$(ViuMarkdownEnableDefaultItems)' == 'true'" />
+    <AdditionalFiles Include="@(ViuMarkdownContent)">
+      <ViuMarkdownContent>true</ViuMarkdownContent>
+      <ViuMarkdownSourceRelativePath>$([MSBuild]::MakeRelative('$(_ViuMarkdownContentRootFullPath)', '%(FullPath)'))</ViuMarkdownSourceRelativePath>
+    </AdditionalFiles>
+  </ItemGroup>
+</Project>

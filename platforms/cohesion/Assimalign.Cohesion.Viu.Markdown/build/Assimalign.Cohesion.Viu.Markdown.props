@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <ViuMarkdownContentRoot Condition="'$(ViuMarkdownContentRoot)' == ''">$(MSBuildProjectDirectory)\docs</ViuMarkdownContentRoot>
+    <ViuMarkdownContentPrefix Condition="'$(ViuMarkdownContentPrefix)' == ''">docs/</ViuMarkdownContentPrefix>
+    <ViuMarkdownRouteBase Condition="'$(ViuMarkdownRouteBase)' == ''">/</ViuMarkdownRouteBase>
+    <ViuMarkdownContentGlob Condition="'$(ViuMarkdownContentGlob)' == ''">**\*.md</ViuMarkdownContentGlob>
+    <ViuMarkdownEnableDefaultItems Condition="'$(ViuMarkdownEnableDefaultItems)' == ''">true</ViuMarkdownEnableDefaultItems>
+  </PropertyGroup>
+</Project>
