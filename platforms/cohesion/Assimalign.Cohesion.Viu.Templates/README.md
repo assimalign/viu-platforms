@@ -14,7 +14,7 @@ dotnet nuget add source https://nuget.pkg.github.com/assimalign/index.json `
   --username $env:GITHUB_ACTOR `
   --password $env:GITHUB_TOKEN `
   --store-password-in-clear-text
-dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.3
+dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.4
 dotnet new viu-cohesion --name HelloViu
 ```
 

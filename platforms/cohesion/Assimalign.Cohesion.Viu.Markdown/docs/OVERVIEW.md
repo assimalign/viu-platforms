@@ -1,7 +1,7 @@
 # Assimalign.Cohesion.Viu.Markdown
 
-Markdown content for Viu applications on Cohesion. Version `10.0.0-beta.3` composes the published
-Cohesion Content.Markdown `10.0.0-beta.1` and Viu `10.0.0-beta.11` packages. The runtime targets
+Markdown content for Viu applications on Cohesion. Version `10.0.0-beta.4` composes the published
+Cohesion Content.Markdown `10.0.0-beta.1` and Viu `10.0.0-beta.12` packages. The runtime targets
 `net10.0`, enables trimming/AOT analysis, and contains no browser, Cohesion Web, Server, or shared
 framework reference. Applications must enable preview features, matching the Cohesion hosting
 packages' preview-annotated surface.
@@ -16,7 +16,7 @@ packages' preview-annotated surface.
   <ViuMarkdownRouteBase>/</ViuMarkdownRouteBase>
 </PropertyGroup>
 <ItemGroup>
-  <PackageReference Include="Assimalign.Cohesion.Viu.Markdown" Version="10.0.0-beta.3" />
+  <PackageReference Include="Assimalign.Cohesion.Viu.Markdown" Version="10.0.0-beta.4" />
   <Content Include="$(ViuMarkdownContentRoot)\**\*.md"
            Link="wwwroot\docs\%(RecursiveDir)%(Filename)%(Extension)" />
 </ItemGroup>
@@ -106,8 +106,9 @@ flatten inline content, lower-case letters and digits, collapse whitespace/hyphe
 `section`, and suffix duplicates with `-1`, `-2`, and so on. Disable them through
 `HeadingIdentifierPolicy=None`. `LinkResolver` can override a destination and explicitly select
 internal RouterLink or ordinary-anchor behavior; null uses catalog resolution. Known relative `.md`
-links preserve fragments and discard queries, matching the documentation conventions. Unknown,
-non-Markdown, external, and fragment-only destinations remain ordinary links. Raw HTML is literal
+links navigate to `route#fragment`, preserving fragments and discarding queries to match the
+documentation conventions. Unknown, non-Markdown, external, and fragment-only destinations remain
+ordinary links. Raw HTML is literal
 text in the underlying Markdown model and never becomes injected markup.
 
 `MarkdownHtmlRenderer.Render(document, page)` keeps the Cohesion `MarkdownText.ToHtml` path available,
@@ -115,9 +116,13 @@ adds the same heading IDs and rewrites known links without mutating the document
 fragment with ordinary anchors; `RouteHrefFactory` can format its internal hrefs for a chosen host.
 The component always uses the node renderer.
 
-For Viu beta.11, the route table includes a bounded optional query/fragment suffix in each page
-pattern because the router passes full locations to its path matcher. Named routes still resolve
-to catalog paths; suffixes cannot match child paths. Web history works with native fragment-only
-anchors when the document base remains the current URL. Hosts control scrolling after asynchronous
-content appears. See [the design document](https://github.com/assimalign/viu-platforms/blob/main/platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/docs/DESIGN.md)
+Viu beta.12 matches plain page and layout paths after separating the URL suffix. `RouteLocation.Path`
+contains only the path; `RawQuery`/`Query` and `Fragment` expose the suffix, while `FullPath` preserves
+its original spelling. Named routes resolve to catalog paths. Hosts scroll through `ScrollBehavior`
+using `to.Fragment`, for example `new ScrollTarget("#" + to.Fragment)` for a non-empty heading fragment
+after waiting for asynchronous content to render. The router does not scroll to fragments implicitly.
+Web history supports native fragment-only anchors when the document base remains the current URL.
+With `<base href="/">`, qualify those links as `page.RoutePath + destination` through `LinkResolver`.
+They may remain native anchors or be marked internal to use router navigation and `ScrollBehavior`.
+See [the design document](https://github.com/assimalign/viu-platforms/blob/main/platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/docs/DESIGN.md)
 for the server-rendering boundary and known upstream seams.

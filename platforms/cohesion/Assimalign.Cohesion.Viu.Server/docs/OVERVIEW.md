@@ -24,8 +24,8 @@ The public verbs are:
 
 The library consumes `Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1`, so Cohesion's `App` and
 `App.Web` shared frameworks provide the HTTP, file-system, hosting, and feature assemblies. Its
-ordinary NuGet dependencies are `Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.3` and
-`Assimalign.Viu.ServerRenderer` `10.0.0-beta.11`. The original
+ordinary NuGet dependencies are `Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.4` and
+`Assimalign.Viu.ServerRenderer` `10.0.0-beta.12`. The original
 pipeline-only `UseViuApplication(Action<ViuApplicationOptions>?)` remains available for custom
 pipeline implementations; on a built Cohesion application, omitting the callback uses the
 configuration previously registered by `AddViuApplication`.
@@ -36,7 +36,7 @@ also use Cohesion's SDK to supply the beta.1 targeting/runtime-pack mapping:
 ```xml
 <Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1">
   <ItemGroup>
-    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-beta.3" />
+    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-beta.4" />
   </ItemGroup>
 </Project>
 ```

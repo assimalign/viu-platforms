@@ -2,9 +2,9 @@
 
 ## Boundary and package placement
 
-`Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.3` is the sixth Cohesion Viu package. The
+`Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.4` is the sixth Cohesion Viu package. The
 runtime references Hosting, published Cohesion Content.Markdown `10.0.0-beta.1`, and Viu Router,
-Components, and Reactivity `10.0.0-beta.11`. It references no Viu Browser, platform Server, Cohesion
+Components, and Reactivity `10.0.0-beta.12`. It references no Viu Browser, platform Server, Cohesion
 Web package, or Cohesion App shared framework. HTTP and file-system sources are ordinary .NET
 implementations of one host-neutral contract. All registrations use instances and explicit
 factories. Public runtime APIs inherit the repository's `EnablePreviewFeatures=true` policy and
@@ -53,22 +53,27 @@ fenced-code language classes, image alternate text, and duplicate heading slugs.
 keeps deep Markdown trees off the managed call stack. Per-render heading state never leaks across
 pages, and constructor snapshots prevent later option mutations from changing a renderer.
 
-The brief's `VirtualNodeFactory` is absent from both the published Viu beta.11 surface and the
+The brief's `VirtualNodeFactory` is absent from both the published Viu beta.12 surface and the
 read-only Viu sources. Supported `ElementNode`, `TextNode`, `FragmentNode`, and `ComponentNode`
 constructors are the public construction seam; no replacement factory or upstream change is added.
 
 Known relative Markdown links resolve by asset-directory segments (`.`, `..`, rooted paths), then
 emit `RouterLink` component invocations with a `to` argument and immutable default-slot content.
-Fragment-only and external links remain anchors. Queries on known Markdown asset destinations are
-discarded, matching the prior content pipeline; fragments are retained. Unknown assets and ordinary
-resource links are unchanged. Applications can override link resolution. The HTML helper calls
+Internal links with fragments navigate to `route#fragment`. Fragment-only and external links remain
+anchors. Queries on known Markdown asset destinations are discarded, matching the prior content
+pipeline; fragments are retained. Unknown assets and ordinary resource links are unchanged.
+Applications can override link resolution. With web history and `<base href="/">`, hosts should
+qualify fragment-only links with the current page route through `LinkResolver`: an ordinary
+`href="#heading"` resolves against the document base, not the current nested route. Qualified links
+may remain native anchors or be marked internal to use router navigation and `ScrollBehavior`.
+The HTML helper calls
 `MarkdownText.ToHtml`, rewrites emitted headings/anchors, and does not mutate the input document.
 Its output remains ordinary HTML, so it does not confer component navigation semantics.
 
 ## Components, routing, and ownership
 
 The code-first components declare static contracts and registrations, with explicit parameter
-binding at setup/render. `[Parameter]` documents the template surface; Viu beta.11 only generates
+binding at setup/render. `[Parameter]` documents the template surface; Viu beta.12 only generates
 attribute binding for single-file components, so runtime registration never scans these attributes.
 `MarkdownComponents.Register` adds type and name references and preserves caller registrations.
 `MarkdownNavigation` stays a small list renderer; applications retain control of shell layout.
@@ -81,13 +86,18 @@ normal rendering. Mount and update callbacks initiate loads; server prefetch awa
 Each instance belongs to one application event loop.
 
 Routes carry fixed page arguments and unique names (`markdown:` plus the catalog route), with an
-optional parent layout and a separately named catch-all. Viu beta.11's matcher expects path-only
-input while Router forwards queries/fragments unchanged; `RouteLocation` also has no public copy
-constructor. The public workaround appends `:markdownSuffix([?#].*)?` to each page/layout pattern.
-Only a query or fragment can follow the exact page path; arbitrary child paths cannot. The optional
-parameter leaves named path resolution unchanged. Fixed page arguments ignore the suffix. Root
-default children inherit the parent's pattern so outlet depth remains correct. The follow-up in
-Viu is a first-class URL path/query/fragment model; this package does not modify that repository.
+optional parent layout and a separately named catch-all. Page and layout records use plain catalog
+paths; default children use an empty path so outlet depth remains correct. Viu beta.12 separates URL
+suffixes before matching: `RouteLocation.Path` is the clean path, `RawQuery`/`Query` expose the query,
+`Fragment` is raw text without `#`, and `FullPath` retains the raw suffix. Fixed page arguments and
+catch-all arguments therefore contain only paths. Named routes resolve directly to catalog paths.
+
+Hosts scroll through `ScrollBehavior` using `to.Fragment`, for example by returning
+`new ScrollTarget("#" + to.Fragment)` after waiting for the destination's Markdown headings to render.
+There is no implicit router fragment scrolling; decoding and CSS escaping are host policy. Navigation
+can use `to.Path` to identify the page while preserving queries and fragments in the full location.
+`MarkdownNavigation` marks the current page using its path, including when a query or fragment is
+present; Viu's separate `RouterLink` exact-active state compares the full location.
 
 HTTP clients and supplied source instances are borrowed. Factory registrations follow the host
 provider's disposal rules. The hosting extension registers no implementation types. Consumers may

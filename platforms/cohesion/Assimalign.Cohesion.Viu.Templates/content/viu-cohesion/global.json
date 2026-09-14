@@ -4,7 +4,7 @@
     "rollForward": "latestPatch"
   },
   "msbuild-sdks": {
-    "Assimalign.Viu.Sdk": "10.0.0-beta.11",
-    "Assimalign.Viu.Sdk.Browser": "10.0.0-beta.11"
+    "Assimalign.Viu.Sdk": "10.0.0-beta.12",
+    "Assimalign.Viu.Sdk.Browser": "10.0.0-beta.12"
   }
 }

@@ -54,8 +54,7 @@ public sealed class MarkdownPageView : IComponent
         async Task LoadAsync(CancellationToken cancellationToken)
         {
             ReadRoute();
-            int suffix = Route.IndexOfAny(['?', '#']);
-            string route = MarkdownContentCatalog.NormalizeRoute(suffix < 0 ? Route : Route[..suffix]);
+            string route = MarkdownContentCatalog.NormalizeRoute(Route);
             if (string.Equals(route, activeRoute, StringComparison.Ordinal))
             {
                 return;

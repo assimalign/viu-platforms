@@ -2,7 +2,7 @@
 
 This project is a Viu Browser WebAssembly application composed through Cohesion hosting and served
 during development by Cohesion Web. Its Cohesion Viu hosting and development-server packages use
-platform version `10.0.0-beta.3`.
+platform version `10.0.0-beta.4`.
 
 ## Package feed
 

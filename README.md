@@ -19,8 +19,8 @@ composition remains independent of these packages.
 - `Assimalign.Cohesion.Viu.Markdown` — generated Markdown catalogs, content sources, router-aware
   node rendering, page and navigation components, and optional hosting registration.
 
-All six packages are versioned together. The current platform version is `10.0.0-beta.3`; it
-composes Cohesion `10.0.0-beta.1` and Viu `10.0.0-beta.11`.
+All six packages are versioned together. The current platform version is `10.0.0-beta.4`; it
+composes Cohesion `10.0.0-beta.1` and Viu `10.0.0-beta.12`.
 
 ## Application model
 
@@ -63,11 +63,11 @@ supplied as Viu's `context.Services`; Cohesion configuration is registered in th
 
 `Assimalign.Cohesion.Viu.Hosting` owns the provider and configuration manager it builds. User
 services start before the selected Viu runtime and stop after it. Browser cancellation follows the
-public Viu lifetime; Viu beta.11 does not yet expose a browser-unload notification hook.
+public Viu lifetime; Viu beta.12 does not yet expose a browser-unload notification hook.
 
 ## Markdown content
 
-Reference `Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.3`. Its incremental generator reads
+Reference `Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.4`. Its incremental generator reads
 `docs/**/*.md` by default and emits `GeneratedMarkdownContent.Catalog` in the application's root
 namespace. Titles, descriptions, status, and navigation order come from the Markdown files; there
 is no frontmatter or handwritten page table. Keep the Markdown files linked as static web assets
@@ -115,9 +115,9 @@ package:
 
 ```xml
 <PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser"
-                  Version="10.0.0-beta.3" />
+                  Version="10.0.0-beta.4" />
 <PackageReference Include="Assimalign.Cohesion.Viu.DevServer"
-                  Version="10.0.0-beta.3" />
+                  Version="10.0.0-beta.4" />
 ```
 
 The DevServer target selects the Viu Browser SDK's custom-host contract, runs the packaged
@@ -142,7 +142,7 @@ After configuring credentials for the Assimalign GitHub Packages feed, install a
 template:
 
 ```powershell
-dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.3
+dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.4
 dotnet new viu-cohesion --name HelloViu
 cd HelloViu
 dotnet watch

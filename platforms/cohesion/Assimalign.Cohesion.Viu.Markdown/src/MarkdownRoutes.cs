@@ -23,7 +23,7 @@ public static class MarkdownRoutes
         foreach (MarkdownPage page in catalog.Pages)
         {
             string path = options.LayoutComponent is not null && page.RoutePath == layoutPath
-                ? string.Empty : PagePattern(page.RoutePath);
+                ? string.Empty : page.RoutePath;
             records.Add(new RouteRecord(path, options.NamePrefix + page.RoutePath,
                 component: new ComponentNode(MarkdownPageView.Registration.Reference),
                 argumentsResolver: RouteComponentArguments.FromValues(("route", page.RoutePath))));
@@ -41,16 +41,10 @@ public static class MarkdownRoutes
         {
             return Array.AsReadOnly(new[]
             {
-                new RouteRecord(PagePattern(layoutPath), options.NamePrefix + "layout",
+                new RouteRecord(layoutPath, options.NamePrefix + "layout",
                     children: records.AsReadOnly(), component: new ComponentNode(options.LayoutComponent)),
             });
         }
         return records.AsReadOnly();
     }
-
-    private static string EscapePath(string path) => path.Replace(":", "\\:", StringComparison.Ordinal);
-
-    // Router beta.11 passes location suffixes to its path-only matcher. A bounded optional
-    // parameter preserves exact page matching and named paths while accepting heading links.
-    private static string PagePattern(string path) => EscapePath(path) + ":markdownSuffix([?#].*)?";
 }

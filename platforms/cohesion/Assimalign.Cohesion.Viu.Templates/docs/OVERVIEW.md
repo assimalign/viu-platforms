@@ -10,10 +10,10 @@ The generated project contains:
 - a Cohesion-shaped Viu application entry point using explicit browser-host and generated-component registration;
 - the HTML and JavaScript boot assets required by the Viu Browser SDK;
 - references to `Assimalign.Cohesion.Viu.Hosting.Browser` and
-  `Assimalign.Cohesion.Viu.DevServer` `10.0.0-beta.3`; and
+  `Assimalign.Cohesion.Viu.DevServer` `10.0.0-beta.4`; and
 - a `NuGet.config` that uses the Assimalign GitHub Packages feed with environment-provided
   credentials plus nuget.org.
 
 The template pins `Assimalign.Viu.Sdk` and `Assimalign.Viu.Sdk.Browser` to
-`10.0.0-beta.11` in `global.json`. This keeps project evaluation deterministic before NuGet can
+`10.0.0-beta.12` in `global.json`. This keeps project evaluation deterministic before NuGet can
 restore the SDK packages.

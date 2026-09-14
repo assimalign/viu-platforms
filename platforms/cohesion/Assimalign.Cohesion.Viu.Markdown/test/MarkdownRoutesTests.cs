@@ -26,6 +26,7 @@ public sealed class MarkdownRoutesTests
             location.Name.ShouldBe("docs:" + page.RoutePath);
             matcher.ResolveNamed(location.Name!).Path.ShouldBe(page.RoutePath);
             location.Route.ShouldNotBeNull();
+            location.Route!.Path.ShouldBe(page.RoutePath);
             location.Route!.ArgumentsResolver!(location)!["route"].ShouldBe(page.RoutePath);
             location.Route!.Component.ShouldBeOfType<ComponentNode>()
                 .Component.ShouldBe(MarkdownPageView.Registration.Reference);
@@ -35,15 +36,20 @@ public sealed class MarkdownRoutesTests
     }
 
     [Theory]
-    [InlineData("/guide#heading")]
-    [InlineData("/guide?source=menu")]
-    [InlineData("/guide?source=menu#heading")]
-    public void QueryAndFragmentSuffixesKeepTheExactPageAndItsFixedRoute(string path)
+    [InlineData("/guide#heading", "", "heading")]
+    [InlineData("/guide?source=menu", "source=menu", "")]
+    [InlineData("/guide?source=menu#heading", "source=menu", "heading")]
+    [InlineData("/guide?#", "", "")]
+    [InlineData("/guide#heading?text#more", "", "heading?text#more")]
+    public void QueryAndFragmentSuffixesKeepTheExactPageAndItsFixedRoute(string fullPath, string query, string fragment)
     {
         RouteMatcher matcher = new(MarkdownRoutes.Create(CreateCatalog()));
-        RouteLocation location = matcher.Resolve(path);
+        RouteLocation location = matcher.Resolve(fullPath);
 
-        location.Path.ShouldBe(path);
+        location.Path.ShouldBe("/guide");
+        location.RawQuery.ShouldBe(query);
+        location.Fragment.ShouldBe(fragment);
+        location.FullPath.ShouldBe(fullPath);
         location.Name.ShouldBe("markdown:/guide");
         location.Route!.ArgumentsResolver!(location)!["route"].ShouldBe("/guide");
     }
@@ -57,8 +63,11 @@ public sealed class MarkdownRoutesTests
         RouteMatcher matcher = new(records);
 
         records.Count.ShouldBe(1);
+        records[0].Path.ShouldBe("/");
         records[0].Component.ShouldBeOfType<ComponentNode>().Component.ShouldBe(layout);
         records[0].Children.Count.ShouldBe(3);
+        records[0].Children[0].Path.ShouldBe(string.Empty);
+        records[0].Children[1].Path.ShouldBe("/guide");
         foreach (string path in new[] { "/", "/#heading", "/guide", "/guide#heading" })
         {
             RouteLocation location = matcher.Resolve(path);
@@ -77,9 +86,11 @@ public sealed class MarkdownRoutesTests
         ComponentReference notFound = ComponentReference.ForName("PageNotFound");
         RouteMatcher matcher = new(MarkdownRoutes.Create(CreateCatalog(),
             new MarkdownRouteOptions { NotFoundComponent = notFound }));
-        RouteLocation location = matcher.Resolve("/missing/deep-page");
+        RouteLocation location = matcher.Resolve("/missing/deep-page?source=menu#heading");
 
         location.Name.ShouldBe("markdown:not-found");
+        location.Path.ShouldBe("/missing/deep-page");
+        location.Fragment.ShouldBe("heading");
         location.Route!.Component.ShouldBeOfType<ComponentNode>().Component.ShouldBe(notFound);
         location.Route!.ArgumentsResolver!(location)!["route"].ShouldBe("/missing/deep-page");
     }

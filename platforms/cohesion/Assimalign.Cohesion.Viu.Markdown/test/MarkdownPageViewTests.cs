@@ -34,7 +34,9 @@ public sealed class MarkdownPageViewTests
         wrapper.Get("h1").Attribute("id").ShouldBe("first");
         wrapper.Get("a").Attribute("href").ShouldBe("/second#details");
         await wrapper.Get("a").TriggerAsync("click");
-        router.CurrentRoute.Value.Path.ShouldBe("/second#details");
+        router.CurrentRoute.Value.Path.ShouldBe("/second");
+        router.CurrentRoute.Value.Fragment.ShouldBe("details");
+        router.CurrentRoute.Value.FullPath.ShouldBe("/second#details");
         source.Complete("docs/second.md", "# Second\n\n## Details");
         await wrapper.FlushAsync();
         wrapper.Get("h2").Attribute("id").ShouldBe("details");

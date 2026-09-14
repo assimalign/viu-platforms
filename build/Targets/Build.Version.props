@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <ViuPlatformsVersionPrefix>10.0.0</ViuPlatformsVersionPrefix>
-    <ViuPlatformsVersionSuffix>beta.3</ViuPlatformsVersionSuffix>
+    <ViuPlatformsVersionSuffix>beta.4</ViuPlatformsVersionSuffix>
     <ViuPlatformsVersion>$(ViuPlatformsVersionPrefix)-$(ViuPlatformsVersionSuffix)</ViuPlatformsVersion>
   </PropertyGroup>
 

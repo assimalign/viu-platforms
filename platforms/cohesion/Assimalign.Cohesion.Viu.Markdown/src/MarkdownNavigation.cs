@@ -43,9 +43,7 @@ public sealed class MarkdownNavigation : IComponent
             ActiveClass = context.Bindings.Parameters.TryGetValue("activeClass", out object? value)
                 && value is string name ? name : "active";
             List<VirtualNode> sections = [];
-            string currentRoute = router?.CurrentRoute.Value.Path ?? string.Empty;
-            int suffix = currentRoute.IndexOfAny(['?', '#']);
-            currentRoute = MarkdownContentCatalog.NormalizeRoute(suffix < 0 ? currentRoute : currentRoute[..suffix]);
+            string currentRoute = MarkdownContentCatalog.NormalizeRoute(router?.CurrentRoute.Value.Path ?? string.Empty);
             foreach (MarkdownSection section in catalog.Sections)
             {
                 sections.Add(RenderSection(section, currentRoute));
