@@ -1,0 +1,7 @@
+<Project>
+  <!-- Properties private to the Web-to-browser build boundary. -->
+  <PropertyGroup>
+    <_ViuClientPublishRemoveProperties>RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;PublishAot;PublishTrimmed;PublishReadyToRun;OutDir;OutputPath;TargetFramework;PublishProfile;NoBuild;_CohesionImageBuild;EnableSdkContainerSupport</_ViuClientPublishRemoveProperties>
+    <_ViuClientRemoveProperties>$(_ViuClientPublishRemoveProperties);PublishDir</_ViuClientRemoveProperties>
+  </PropertyGroup>
+</Project>

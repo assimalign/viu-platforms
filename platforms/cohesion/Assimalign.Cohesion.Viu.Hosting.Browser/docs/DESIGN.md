@@ -34,3 +34,19 @@ the Cohesion provider and configuration.
 
 The library contains no static web assets. Asset delivery remains the responsibility of
 `Assimalign.Viu.Browser` and its Browser SDK integration.
+
+## Client document startup
+
+Explicit singleton factories create the provider and its private `IHostService`. Registration
+captures path and timeout; service creation captures the warning handler at application build.
+The ordinary host-service order awaits the request before starting the final Viu runtime service,
+so components see either an immutable complete document or `Empty`, never a partly loaded map.
+Cancellation, HTTP, IO and JSON failures warn without failing startup. The service never disposes
+the caller-owned HTTP client. It loads once per single-use application lifetime.
+
+The browser package depends on the host-neutral contract:
+
+```mermaid
+flowchart LR
+    Browser["Hosting.Browser: loader and provider"] --> Hosting["Hosting: immutable contract and JSON metadata"]
+```

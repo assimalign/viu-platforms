@@ -60,3 +60,21 @@ then disposes the runtime, provider, and configuration manager. Disposal is best
 three owned resources and aggregates multiple failures.
 
 No `InternalsVisibleTo`, runtime XML parsing, reflection activation, or assembly scanning is used.
+
+## Client configuration boundary
+
+Hosting owns the immutable wire contract and source-generated JSON metadata, so browser and
+server agree without either depending on the other. No resource runtime, mounts, settings,
+credentials or trust keys are serialized by this type. Mutable caller dictionaries are copied
+into read-only nested maps. Browser failure uses the shared `Empty` instance.
+
+The dependency direction remains host-neutral:
+
+```mermaid
+flowchart LR
+    Browser["Hosting.Browser"] --> Hosting["Hosting: ViuClientConfiguration"]
+    Server["Server"] --> Hosting
+```
+
+Service validation now enumerates Cohesion's `ServiceProviderBuilder.Container`; instance and
+factory registration remain the only supported activation paths.

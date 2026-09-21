@@ -2,8 +2,8 @@
 # per-area workflow model (assimalign/cohesion resource-web.yml): every push that touches the
 # area builds and tests the whole platform solution.
 #
-# Restore uses .github/NuGet.ci.config (GitHub Packages + nuget.org) instead of the repo-root
-# NuGet.config, whose machine-local ../viu and ../cohesion _out feeds do not exist in CI.
+# Restore uses sibling feeds reconstructed from pinned repository variables while these lines
+# are unreleased. Project-SDK resolution also consumes the replacement root NuGet.config.
 # Cross-repo Assimalign packages restore with PACKAGES_READ_TOKEN when the organization has one
 # configured, falling back to the workflow token.
 name: Platform - Cohesion
@@ -20,6 +20,7 @@ on:
       - 'scripts/**'
       - 'global.json'
       - '.github/NuGet.ci.config'
+      - '.github/scripts/**'
       - '.github/workflows/platform-cohesion.yml'
   pull_request:
     branches: [main]
@@ -53,6 +54,23 @@ jobs:
       - name: Use CI NuGet configuration
         shell: pwsh
         run: Copy-Item .github/NuGet.ci.config NuGet.config -Force
+
+      - name: Install WebAssembly workload
+        shell: pwsh
+        run: dotnet workload install wasm-tools
+
+      - name: Pack unreleased sibling packages
+        shell: pwsh
+        env:
+          COHESION_SIBLING_REF: ${{ vars.COHESION_SIBLING_REF }}
+          VIU_SIBLING_REF: ${{ vars.VIU_SIBLING_REF }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
+        run: |
+          if (-not $env:COHESION_SIBLING_REF -or -not $env:VIU_SIBLING_REF) {
+            throw 'Set COHESION_SIBLING_REF and VIU_SIBLING_REF repository variables to the source commits for the tracked unreleased package lines.'
+          }
+          ./.github/scripts/Pack-CohesionSibling.ps1 -Ref $env:COHESION_SIBLING_REF
+          ./.github/scripts/Pack-ViuSibling.ps1 -Ref $env:VIU_SIBLING_REF
 
       - name: Restore
         shell: pwsh

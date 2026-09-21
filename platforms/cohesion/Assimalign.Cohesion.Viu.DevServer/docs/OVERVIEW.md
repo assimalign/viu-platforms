@@ -36,3 +36,10 @@ The packaging publish selects the build host RID only to resolve Cohesion's all-
 runtime packs. It emits no app host or self-contained Microsoft runtime. Cohesion and Viu runtime
 assemblies are copy-local under `tools/`, and the generated runtimeconfig names only
 `Microsoft.NETCore.App`; the consumer needs a compatible Microsoft .NET 10 runtime.
+
+## Current Cohesion line
+
+Version `10.0.0-beta.5` builds and packs against Cohesion `10.0.1-preview.3.local`. The packaged
+managed runtime closure remains self-sufficient except for the installed Microsoft.NETCore.App.
+The Server middleware also exposes the public client document and reserves resource control-plane
+routes. For deployable sites use `viu-cohesion-web`; this tool remains the development host.

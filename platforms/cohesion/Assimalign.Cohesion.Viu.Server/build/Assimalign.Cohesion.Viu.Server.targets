@@ -1,0 +1,59 @@
+<Project>
+  <!-- Private="false" keeps the client's content items from flowing transitively into the Web
+       executable's build output: a partial wwwroot beside the executable would make
+       UseClientOutput select the physical layout and miss the framework assets that only the
+       client's own build output or ViuPublishClient provide. -->
+  <ItemGroup Condition="'$(ViuClientProject)' != ''">
+    <ProjectReference Include="$(ViuClientProject)" ReferenceOutputAssembly="false" Private="false"
+                      GlobalPropertiesToRemove="$(_ViuClientRemoveProperties)" />
+  </ItemGroup>
+
+  <!-- GetTargetPath returns the client's evaluated TargetPath, including its own
+       AssemblyName, TargetDir, framework and output-path customizations. -->
+  <Target Name="ViuResolveClientOutput"
+          BeforeTargets="GenerateBuildRuntimeConfigurationFiles;CohesionCreateResourceManifest"
+          Condition="'$(ViuClientProject)' != ''">
+    <Error Condition="!Exists('$(ViuClientProject)')" Text="ViuClientProject '$(ViuClientProject)' does not exist." />
+    <MSBuild Projects="$(ViuClientProject)" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="$(_ViuClientRemoveProperties)">
+      <Output TaskParameter="TargetOutputs" ItemName="_ViuClientTarget" />
+    </MSBuild>
+    <Error Condition="'@(_ViuClientTarget->Count())' != '1'" Text="ViuClientProject must produce exactly one browser target assembly." />
+    <PropertyGroup>
+      <_ViuClientAssembly>@(_ViuClientTarget->'%(Filename)')</_ViuClientAssembly>
+      <_ViuClientOutput>@(_ViuClientTarget->'%(RootDir)%(Directory)')</_ViuClientOutput>
+    </PropertyGroup>
+    <ItemGroup>
+      <RuntimeHostConfigurationOption Include="Viu.Client.$(_ViuClientAssembly).OutputPath" Value="$(_ViuClientOutput)" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(CohesionApplicationModel)' == 'enabled'">
+      <CohesionResourceProperty Include="web.viu.client" Value="$(_ViuClientAssembly)" />
+      <CohesionResourceProperty Include="web.viu.spa-fallback" Value="true" />
+      <CohesionResourceProperty Include="web.viu.base-path" Value="/" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ViuPublishClient" BeforeTargets="ComputeFilesToPublish" Condition="'$(ViuClientProject)' != ''">
+    <PropertyGroup>
+      <_ViuClientPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client-publish'))</_ViuClientPublishDir>
+    </PropertyGroup>
+    <!-- The browser SDK supplies its own runtime and trimming settings. Keep the
+         explicitly supplied staging PublishDir: RemoveProperties also removes
+         properties supplied on this MSBuild task, not just inherited globals. -->
+    <MSBuild Projects="$(ViuClientProject)" Targets="Restore"
+             Properties="Configuration=Release;PublishDir=$(_ViuClientPublishDir)"
+             RemoveProperties="$(_ViuClientPublishRemoveProperties)" />
+    <MSBuild Projects="$(ViuClientProject)" Targets="Publish"
+             Properties="Configuration=Release;PublishDir=$(_ViuClientPublishDir)"
+             RemoveProperties="$(_ViuClientPublishRemoveProperties)" />
+    <Error Condition="!Exists('$(_ViuClientPublishDir)wwwroot/index.html')" Text="ViuClientProject must publish wwwroot/index.html." />
+    <ItemGroup>
+      <_ViuPublishedClientAsset Include="$(_ViuClientPublishDir)wwwroot/**/*" />
+      <ResolvedFileToPublish Include="@(_ViuPublishedClientAsset)">
+        <RelativePath>wwwroot/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+</Project>

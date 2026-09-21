@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using Assimalign.Cohesion.Http;
 using Assimalign.Cohesion.Web;
+using Assimalign.Cohesion.Viu.Hosting;
 
 using WebUtility = System.Net.WebUtility;
 
@@ -44,9 +45,29 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
 
-        ApplyCrossOriginIsolationHeaders(context.Response.Headers);
-
         string requestPath = context.Request.Path.Value;
+        if (ResourceRoutes.IsReserved(requestPath, _configuration.ControlPlanePath))
+        {
+            await next.Invoke(context).ConfigureAwait(false);
+            return;
+        }
+
+        ApplyCrossOriginIsolationHeaders(context.Response.Headers);
+        if (_configuration.ClientConfigurationPath is string configurationPath
+            && requestPath.Equals(configurationPath, StringComparison.Ordinal))
+        {
+            if (context.Request.Method != HttpMethod.Get && context.Request.Method != HttpMethod.Head)
+            {
+                context.Response.StatusCode = HttpStatusCode.MethodNotAllowed;
+                return;
+            }
+            byte[] payload = JsonSerializer.SerializeToUtf8Bytes(
+                _configuration.ClientConfiguration ?? ViuClientConfiguration.Empty,
+                ViuClientConfigurationJsonContext.Default.ViuClientConfiguration);
+            await WriteBytesAsync(context, payload, "application/json; charset=utf-8", "no-store").ConfigureAwait(false);
+            return;
+        }
+
         bool isReservedRefreshPath = IsReservedRefreshPath(requestPath);
         if (!_configuration.BrowserRefresh.IsEnabled && isReservedRefreshPath)
         {

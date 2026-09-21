@@ -2,7 +2,7 @@
 
 ## Hosting boundary
 
-The server uses `Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1` and the App/App.Web shared frameworks.
+The server uses `Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local` and the App/App.Web shared frameworks.
 `WebApplication.CreateBuilder()` is the composition root: `AddViuApplication` registers the bridge,
 `builder.Server.UseServer(...UseHttp1...)` configures every resolved URL, and the built application
 installs the registered middleware through `UseViuApplication`.
@@ -35,3 +35,10 @@ or self-contained Microsoft runtime is required on the consumer machine.
 - Tests cover parsing, property selection, readiness text, builder-level composition, and a real loopback HTTP transport.
 - The optional browser debug websocket proxy is not implemented in this phase. Browser refresh and hot reload are provided by `Assimalign.Cohesion.Viu.Server`.
 - AOT compatibility is not asserted for this executable. The shipping middleware library owns the AOT-sensitive JSON and rendering paths; this app is shipped as a normal framework-dependent tool payload.
+
+## Preview.3 rebase
+
+The tool and its tests resolve the same preview.3.local Web SDK, avoiding mixed SDK resolver
+versions. The Server dependency remains a library despite the new Web SDK's executable default.
+Packing still publishes the managed Cohesion framework closure into `tools`; the deployable Web
+resource template consumes Server's client bundling targets directly instead of shipping this tool.

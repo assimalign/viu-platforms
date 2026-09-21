@@ -151,7 +151,7 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
 
     private void RejectTypeActivation()
     {
-        foreach (ServiceDescriptor descriptor in Services.Services)
+        foreach (ServiceDescriptor descriptor in Services.Container)
         {
             if (descriptor.ImplementationType is not null)
             {

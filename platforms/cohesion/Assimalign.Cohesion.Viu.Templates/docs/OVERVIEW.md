@@ -1,7 +1,7 @@
 # Assimalign.Cohesion.Viu.Templates overview
 
-`Assimalign.Cohesion.Viu.Templates` is a content-only `dotnet new` package. It provides one
-template, `viu-cohesion`, which creates a Viu Browser WebAssembly application and selects the
+`Assimalign.Cohesion.Viu.Templates` is a content-only `dotnet new` package. It provides two templates. The development
+template, `viu-cohesion`, creates a Viu Browser WebAssembly application and selects the
 Cohesion development server through a package reference.
 
 The generated project contains:
@@ -10,10 +10,17 @@ The generated project contains:
 - a Cohesion-shaped Viu application entry point using explicit browser-host and generated-component registration;
 - the HTML and JavaScript boot assets required by the Viu Browser SDK;
 - references to `Assimalign.Cohesion.Viu.Hosting.Browser` and
-  `Assimalign.Cohesion.Viu.DevServer` `10.0.0-beta.4`; and
-- a `NuGet.config` that uses the Assimalign GitHub Packages feed with environment-provided
-  credentials plus nuget.org.
+  `Assimalign.Cohesion.Viu.DevServer` `10.0.0-beta.5`; and
+- a `NuGet.config` mapping the configurable sibling local feeds plus nuget.org.
 
 The template pins `Assimalign.Viu.Sdk` and `Assimalign.Viu.Sdk.Browser` to
 `10.0.0-beta.12` in `global.json`. This keeps project evaluation deterministic before NuGet can
 restore the SDK packages.
+
+## Deployable Web resource template
+
+Version `10.0.0-beta.5` adds `viu-cohesion-web`, producing Client, Web, AppHost and a solution.
+Pass `--assimalignRoot` when the output is outside the sibling-checkout directory. SDK and library
+Cohesion identities are aligned at `10.0.1-preview.3.local`; Viu stays at `10.0.0-beta.12`.
+Web references Server with `ViuClientProject`, and AppHost selects Local or Kubernetes. See the
+[generated README](../content/viu-cohesion-web/README.md) for build, run and container commands.

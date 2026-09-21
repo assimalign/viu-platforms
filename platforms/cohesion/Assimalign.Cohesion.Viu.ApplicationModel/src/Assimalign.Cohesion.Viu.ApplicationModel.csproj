@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Typed Viu site validation over the Cohesion Web application model.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ViuPlatformPackageReference Include="Assimalign.Cohesion.ApplicationModel" />
+    <ViuPlatformPackageReference Include="Assimalign.Cohesion.Web.ApplicationModel" />
+    <ViuPlatformPackageReference Include="Assimalign.Cohesion.Hosting.Resources" />
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

@@ -13,6 +13,37 @@ namespace Assimalign.Cohesion.Viu.Server;
 /// </remarks>
 public sealed class ViuApplicationOptions
 {
+    /// <summary>Gets or sets the public client document route. Set to null to disable it.</summary>
+    public string? ClientConfigurationPath { get; set; } = "/_cohesion/client.json";
+
+    /// <summary>Selects the published physical root, or the client build output and its asset manifests.</summary>
+    /// <param name="clientAssemblyName">The client assembly name declared by the ViuClientProject project.</param>
+    /// <exception cref="InvalidOperationException">The build output option is absent and no published index exists.</exception>
+    /// <remarks>The Server build targets write the assembly-specific output directory into the Web runtime configuration.</remarks>
+    public void UseClientOutput(string clientAssemblyName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientAssemblyName);
+        string publishedRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+        if (File.Exists(Path.Combine(publishedRoot, "index.html")))
+        {
+            ContentRootPath = publishedRoot;
+            RuntimeManifestPath = null;
+            EndpointsManifestPath = null;
+            return;
+        }
+
+        string key = $"Viu.Client.{clientAssemblyName}.OutputPath";
+        string? output = AppContext.GetData(key) as string;
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new InvalidOperationException(
+                $"The runtime option '{key}' is missing. Set ViuClientProject on the Web executable and build it, or publish its wwwroot.");
+        }
+        ContentRootPath = Path.Combine(output, "wwwroot");
+        RuntimeManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.runtime.json");
+        EndpointsManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.endpoints.json");
+    }
+
     /// <summary>
     /// Gets or sets the physical application content root, normally the build output's
     /// <c>wwwroot</c> directory.
@@ -38,6 +69,18 @@ public sealed class ViuApplicationOptions
     /// renderer or another downstream route handler to own application documents.
     /// </remarks>
     public bool EnableSpaFallback { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the resource control-plane path the Viu middleware never answers, so the
+    /// orchestrated Web host's terminal routes are reached even when the fallback is enabled.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>/cohesion/v1</c>, the path <c>Assimalign.Cohesion.Sdk.Web</c> declares. Set it
+    /// when the resource declares a different <c>CohesionControlPlanePath</c>. Only this path and its
+    /// subtree plus the bare <c>/healthz</c>, <c>/readyz</c>, and <c>/livez</c> probes are reserved;
+    /// an application route such as <c>/cohesion</c> or <c>/cohesion/database</c> is served normally.
+    /// </remarks>
+    public string ControlPlanePath { get; set; } = ResourceRoutes.DefaultControlPlanePath;
 
     /// <summary>
     /// Gets or sets a value indicating whether cross-origin isolation response headers are added.

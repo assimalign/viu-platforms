@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <LangVersion>preview</LangVersion>
-    <!-- Cohesion 10.0.0-beta.1 annotates its complete public HTTP/Web surface as preview. -->
+    <!-- Cohesion 10.0.1-preview.3.local annotates its complete public HTTP/Web surface as preview. -->
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

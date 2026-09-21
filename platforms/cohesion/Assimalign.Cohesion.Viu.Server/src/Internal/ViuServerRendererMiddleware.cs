@@ -54,7 +54,7 @@ internal sealed class ViuServerRendererMiddleware : IWebApplicationMiddleware
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
 
-        if (context.Request.Method != HttpMethod.Get)
+        if (context.Request.Method != HttpMethod.Get || ResourceRoutes.IsReserved(context.Request.Path.Value))
         {
             await next.Invoke(context).ConfigureAwait(false);
             return;

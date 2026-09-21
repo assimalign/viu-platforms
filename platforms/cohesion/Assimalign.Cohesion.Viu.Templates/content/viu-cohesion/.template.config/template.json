@@ -20,5 +20,14 @@
     {
       "path": "CohesionViuApplication.csproj"
     }
-  ]
+  ],
+  "symbols": {
+    "assimalignRoot": {
+      "defaultValue": "..",
+      "dataType": "string",
+      "replaces": "__ASSIMALIGN_ROOT__",
+      "description": "Directory containing the Assimalign sibling local feeds.",
+      "type": "parameter"
+    }
+  }
 }

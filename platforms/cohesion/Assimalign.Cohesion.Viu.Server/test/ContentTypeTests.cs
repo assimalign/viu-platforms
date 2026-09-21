@@ -16,6 +16,8 @@ public sealed class ContentTypeTests
     [InlineData("module.cjs", "text/javascript")]
     [InlineData("boot.json", "application/json")]
     [InlineData("app.wasm.br", "application/wasm")]
+    [InlineData("docs/index.md", "text/markdown; charset=utf-8")]
+    [InlineData("docs/index.md.br", "text/markdown; charset=utf-8")]
     public void Get_KnownWebAssemblyArtifact_ShouldReturnExpectedContentType(string path, string expected)
     {
         // Act

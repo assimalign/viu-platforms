@@ -22,6 +22,7 @@ internal static class ViuContentTypes
             ".gif" => "image/gif",
             ".ico" => "image/x-icon",
             ".txt" => "text/plain; charset=utf-8",
+            ".md" => "text/markdown; charset=utf-8",
             _ => "application/octet-stream",
         };
     }

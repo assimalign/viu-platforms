@@ -22,10 +22,9 @@ the runtime dependency closure.
 
 ## Package-feed contract
 
-Published Assimalign packages are consumed from the organization GitHub Packages feed. The
-generated `NuGet.config` reads `GITHUB_ACTOR` and `GITHUB_TOKEN`; the token must grant
-`read:packages`. nuget.org remains available for Microsoft and third-party dependencies. The
-template contains no machine-specific feed paths or checkout parameters.
+The generated `NuGet.config` maps the tracked unreleased Assimalign lines to sibling local feeds.
+`assimalignRoot` substitutes their common parent directory; nuget.org supplies public dependencies.
+No credential is embedded. Remote publication is a separate release concern.
 
 ## AOT and trimming
 
@@ -35,3 +34,31 @@ build time. `AllowMissingPrunePackageData` keeps restore portable across .NET 10
 that omit the optional pruning-data directory; it does not disable the trimmer. Runtime component
 registration is generated at compile time; the template does not use reflection, assembly scanning,
 or runtime source parsing.
+
+## Three-project template
+
+`viu-cohesion-web` keeps browser runtime code in Client, enabled Web hosting and client publishing
+in Web, and orchestration in AppHost. The solution explicitly pins all five SDKs in its chain.
+The `__COHESION_PACKAGE_VERSION__` template symbol defaults to the tracked `.local` identity;
+`assimalignRoot` substitutes portable local-feed paths without hard-coding a developer machine.
+The AppHost pins platform gateways to their separate canonical preview.3 package identity.
+
+Project references flow in this direction:
+
+```mermaid
+flowchart LR
+    AppHost["AppHost"] --> Web["Web resource manifest"]
+    Web --> Client["Client: build and publish only"]
+```
+
+The generated client loads configuration before components start. Web uses its normal control
+plane and `UseClientOutput`. AppHost deliberately retains generated `AddAllResources()` and its
+current `AddWeb` behavior; mapping the Viu overlay is a Cohesion SDK follow-up. The old
+`viu-cohesion` development-server template stays available on the same beta.5 family version.
+
+Web sets `DisableTransitiveFrameworkReferenceDownloads=true`: the SDK explicitly includes App
+and App.Web, so publishing the Web resource need not download unrelated Cohesion area runtime
+packs. Its HTTP endpoint has development port 8080 so standalone `dotnet run` also binds a listener.
+Ordinary ARM64 publication includes the client. The current Cohesion image resolver still accepts
+only Linux x64 RIDs and requires NativeAOT for Release images; ARM64 OCI publication is an upstream
+follow-up, not a change of the site's Web application model.

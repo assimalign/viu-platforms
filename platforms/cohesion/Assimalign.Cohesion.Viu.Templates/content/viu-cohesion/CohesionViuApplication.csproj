@@ -17,8 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser" Version="10.0.0-beta.4" />
-    <PackageReference Include="Assimalign.Cohesion.Viu.DevServer" Version="10.0.0-beta.4" />
+    <PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser" Version="10.0.0-beta.5" />
+    <PackageReference Include="Assimalign.Cohesion.Viu.DevServer" Version="10.0.0-beta.5" />
   </ItemGroup>
 
   <ItemGroup>

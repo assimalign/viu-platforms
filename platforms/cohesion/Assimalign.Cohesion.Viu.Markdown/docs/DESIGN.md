@@ -2,8 +2,8 @@
 
 ## Boundary and package placement
 
-`Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.4` is the sixth Cohesion Viu package. The
-runtime references Hosting, published Cohesion Content.Markdown `10.0.0-beta.1`, and Viu Router,
+`Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.5` is the sixth Cohesion Viu package. The
+runtime references Hosting, published Cohesion Content.Markdown `10.0.1-preview.3.local`, and Viu Router,
 Components, and Reactivity `10.0.0-beta.12`. It references no Viu Browser, platform Server, Cohesion
 Web package, or Cohesion App shared framework. HTTP and file-system sources are ordinary .NET
 implementations of one host-neutral contract. All registrations use instances and explicit
@@ -122,3 +122,10 @@ mounted component navigation/cancellation, and server prefetch. `scripts/Verify-
 builds an external consumer of the packed generator against the actual viu-docs Markdown tree and
 compares its 45 routes/assets with the preserved POC fixture. The ordinary Release build runs AOT
 compatibility analysis; it is not a claim that a NativeAOT or browser-WASM AOT publish was performed.
+
+## Build host portability
+
+Content-root normalization uses `MSBuild.NormalizePath(projectDirectory, contentRoot)` rather than
+the two-argument `Path.GetFullPath`, because the latter is unavailable in Visual Studio's .NET
+Framework MSBuild. This affects only path evaluation; the source generator's catalog contract is
+unchanged. The family now composes Cohesion preview.3 through the complete `.local` feed identity.

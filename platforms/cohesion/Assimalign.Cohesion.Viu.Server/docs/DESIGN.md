@@ -11,14 +11,14 @@ verbs remain available for non-hosting pipeline implementations.
 This external platform package intentionally composes `Web.Hosting`; Cohesion's hosting-isolation
 rule constrains feature projects inside the Cohesion repository, while this Server package is the
 cross-repository host bridge. It therefore consumes
-`Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1` and its App/App.Web shared frameworks rather than direct
+`Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local` and its App/App.Web shared frameworks rather than direct
 Cohesion Web library packages. Phase 6 adds the explicit Hosting application/lifecycle linkage,
 while listener ownership and process lifetime remain with the Cohesion Web host.
 
 The package's nuspec carries framework references for `Assimalign.Cohesion.App` and
 `Assimalign.Cohesion.App.Web`; its ordinary dependencies are
-`Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.4` and
-`Assimalign.Viu.ServerRenderer` `10.0.0-beta.12`. Cohesion's beta.1 HTTP/Web API remains a preview
+`Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.5` and
+`Assimalign.Viu.ServerRenderer` `10.0.0-beta.12`. Cohesion's preview.3 HTTP/Web API remains a preview
 surface, so this assembly opts in while avoiding runtime-preview mechanisms of its own.
 
 ## Manifest model and asset resolution
@@ -170,3 +170,41 @@ Shipping code is marked AOT compatible. Request dispatch is ordinary closed-type
 JSON uses generated metadata; the refresh delta validator uses `JsonDocument`; and no reflection,
 dynamic code generation, runtime XML parsing, or assembly discovery is used. Public registrations
 and the supplied root factory keep application activation explicit.
+
+## Resource-aware publishing and client document
+
+`buildTransitive/Assimalign.Cohesion.Viu.Server.props|targets` activate only when `ViuClientProject`
+is set. The non-compiling project reference removes Web RID, self-contained, AOT, trimming and
+ready-to-run properties. `ViuResolveClientOutput` calls the public MSBuild `GetTargetPath` target;
+its returned assembly path supplies the client's own target directory and assembly name.
+A runtime configuration option named `Viu.Client.<assembly>.OutputPath` carries that directory.
+`ViuPublishClient` restores and publishes the browser in Release, then registers all published
+`wwwroot` files as `ResolvedFileToPublish`, so SDK container payloads and image fingerprints include
+them. It never packs or changes a sibling project.
+
+`UseClientOutput` first checks `AppContext.BaseDirectory/wwwroot/index.html`. A published root
+uses no asset manifest; a build root uses both runtime and endpoints manifests. Physical files
+retain their logical names for MIME lookup while compression selects a sibling and adds `Vary`.
+Probe paths and the configured control-plane path (`/cohesion/v1` by default — never the whole
+`/cohesion` prefix, which an application such as the Cohesion documentation module legitimately
+routes) continue before file lookup, predicate execution, or SPA fallback.
+
+Resource identity is captured during composition from `ResourceRuntime.Current`. Explicit field
+projection prevents secrets, settings, mounts, bootstrap credentials and trust material from
+entering JSON. For an unbound host, the concrete Web builder or built application supplies its
+environment; other pipeline-only composition falls back to `AppEnvironment`. These local concrete-type checks avoid
+adding state to `IWebApplicationBuilder`. JSON metadata lives in Hosting and responses are never
+cached. Route validation rejects control-plane routes and non-local request paths.
+
+The package dependency direction is:
+
+```mermaid
+flowchart LR
+    Server["Viu.Server"] --> Web["Web.Hosting / App.Web"]
+    Server --> Hosting["Viu.Hosting: client contract"]
+    Server --> Resources["Hosting.Resources: public identity and references"]
+```
+
+The site remains `Kind=Web` with `Assimalign.Cohesion.Web.ApplicationModel`. Apphost-side Viu
+validation belongs in the separate ApplicationModel package. SDK-generated `AddAllResources()`
+continues to choose `AddWeb` until Cohesion supports the Viu overlay mapping.

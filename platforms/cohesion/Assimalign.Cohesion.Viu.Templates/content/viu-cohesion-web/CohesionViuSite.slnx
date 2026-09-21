@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CohesionViuSite.Client/CohesionViuSite.Client.csproj" />
+  <Project Path="CohesionViuSite.Web/CohesionViuSite.Web.csproj" />
+  <Project Path="CohesionViuSite.AppHost/CohesionViuSite.AppHost.csproj" />
+</Solution>

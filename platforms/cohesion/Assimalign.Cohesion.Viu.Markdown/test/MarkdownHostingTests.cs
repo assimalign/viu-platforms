@@ -30,7 +30,7 @@ public sealed class MarkdownHostingTests
             options.Components = components;
         }).ShouldBeSameAs(builder);
 
-        foreach (ServiceDescriptor descriptor in builder.Services.Services)
+        foreach (ServiceDescriptor descriptor in builder.Services.Container)
         {
             descriptor.ImplementationType.ShouldBeNull();
             (descriptor.ImplementationInstance is not null || descriptor.ImplementationFactory is not null)

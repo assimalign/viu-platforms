@@ -22,21 +22,21 @@ The public verbs are:
 - `UseViuServerRenderer` adapts Viu's host-neutral `ServerRenderAdaptor<IHttpContext>` to a
   Cohesion response stream.
 
-The library consumes `Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1`, so Cohesion's `App` and
+The library consumes `Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local`, so Cohesion's `App` and
 `App.Web` shared frameworks provide the HTTP, file-system, hosting, and feature assemblies. Its
-ordinary NuGet dependencies are `Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.4` and
+ordinary NuGet dependencies are `Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.5` and
 `Assimalign.Viu.ServerRenderer` `10.0.0-beta.12`. The original
 pipeline-only `UseViuApplication(Action<ViuApplicationOptions>?)` remains available for custom
 pipeline implementations; on a built Cohesion application, omitting the callback uses the
 configuration previously registered by `AddViuApplication`.
 
 The package's framework references are name-only NuGet metadata, so a direct package consumer must
-also use Cohesion's SDK to supply the beta.1 targeting/runtime-pack mapping:
+also use Cohesion's SDK to supply the preview.3.local targeting/runtime-pack mapping:
 
 ```xml
-<Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.0-beta.1">
+<Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local">
   <ItemGroup>
-    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-beta.4" />
+    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-beta.5" />
   </ItemGroup>
 </Project>
 ```
@@ -46,8 +46,8 @@ Pin both SDKs because `Sdk.Web` chains the base SDK through an unversioned impor
 ```json
 {
   "msbuild-sdks": {
-    "Assimalign.Cohesion.Sdk": "10.0.0-beta.1",
-    "Assimalign.Cohesion.Sdk.Web": "10.0.0-beta.1"
+    "Assimalign.Cohesion.Sdk": "10.0.1-preview.3.local",
+    "Assimalign.Cohesion.Sdk.Web": "10.0.1-preview.3.local"
   }
 }
 ```
@@ -69,7 +69,8 @@ runtime routes follow the operating system's file-name comparison.
 When an endpoint has Brotli, gzip, and identity variants, the request's `Accept-Encoding` quality
 and the manifest selector quality choose the result. The manifest's response headers are preserved.
 Viu and WebAssembly extensions have explicit content types, including `.wasm`, `.webcil`, `.dll`,
-`.pdb`, `.dat`, `.blat`, `.mjs`, `.cjs`, and `.json`. Unknown non-file GET and HEAD navigation
+`.pdb`, `.dat`, `.blat`, `.mjs`, `.cjs`, `.json`, and `.md` (`text/markdown; charset=utf-8`, so
+documentation content fetched by the Markdown package is typed correctly). Unknown non-file GET and HEAD navigation
 routes fall back to identity `index.html` with `Cache-Control: no-store`; missing file-like and
 `/_framework` routes continue so the host can answer 404. Disable `EnableSpaFallback` when a
 downstream server renderer owns application documents.
@@ -210,3 +211,21 @@ hydration anchor. Prefix, main-render, output, or cancellation failure suppresse
 Teleport insertion is deliberately suffix-only. The shell cannot backpatch an already streamed
 prefix or `<head>`, or splice into a previously emitted main-body region. Earlier destinations require
 the host to buffer that region or perform a render prepass.
+
+## Web resource and client bundling
+
+Version `10.0.0-beta.5` supports Cohesion `10.0.1-preview.3.local` Web resources. On the executable,
+set `ViuClientProject` to the browser csproj and call
+`builder.AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` before building the host.
+Package `buildTransitive` assets establish build order, record the evaluated client output path,
+publish the client in Release with its own settings, and bundle its complete `wwwroot` into Web's
+publish directory. Published hosting selects the physical root without manifests, including
+fingerprinted assets, MIME types, and negotiated `.br`/`.gz` siblings.
+
+Enabled Web manifests gain `web.viu.client`, `web.viu.spa-fallback=true`, and `web.viu.base-path=/`.
+Viu middleware passes `/healthz`, `/readyz`, `/livez`, and the resource control-plane path
+(`ViuApplicationOptions.ControlPlanePath`, default `/cohesion/v1`, plus its subtree) through before fallback or
+server rendering. The default `/_cohesion/client.json` route serves only public runtime identity
+and reference URLs as `cohesion/viu-client/v1`, with `no-store`. Set `ClientConfigurationPath` to a
+local absolute route to move it, or null to disable it. Plain hosts use their host environment and
+empty references. See [design](DESIGN.md) for the build boundary and gateway limitation.

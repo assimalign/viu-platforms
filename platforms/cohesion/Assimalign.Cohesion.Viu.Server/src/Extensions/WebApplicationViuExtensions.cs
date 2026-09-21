@@ -93,7 +93,8 @@ public static class WebApplicationViuExtensions
             ViuApplicationOptions options = new();
             configure?.Invoke(options);
 
-            ViuApplicationConfiguration configuration = ViuApplicationConfiguration.Create(options);
+            ViuApplicationConfiguration configuration = ViuApplicationConfiguration.Create(
+                options, (builder as WebApplicationBuilder)?.Environment.Name);
             return builder.AddFeature(new ViuApplicationFeature(configuration));
         }
     }
@@ -224,7 +225,8 @@ public static class WebApplicationViuExtensions
             ViuApplicationOptions options = new();
             configure?.Invoke(options);
 
-            return builder.Use(new ViuApplicationMiddleware(ViuApplicationConfiguration.Create(options)));
+            return builder.Use(new ViuApplicationMiddleware(ViuApplicationConfiguration.Create(
+                options, (builder as WebApplication)?.Context.Environment.Name)));
         }
 
         /// <summary>

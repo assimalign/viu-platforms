@@ -17,6 +17,25 @@ namespace Assimalign.Cohesion.Viu.Server.Tests;
 
 public sealed class ViuServerRendererMiddlewareTests
 {
+    [Theory]
+    [InlineData("/readyz")]
+    [InlineData("/healthz")]
+    [InlineData("/livez")]
+    [InlineData("/cohesion/v1/health")]
+    public async Task ResourceRoutesNeverInvokeServerRendering(string path)
+    {
+        RecordingScopeFactory factory = new();
+        ViuServerRendererMiddleware middleware = new(new ServerRenderAdaptor<IHttpContext>(factory),
+            _ => throw new InvalidOperationException("Reserved route rendered."),
+            _ => throw new InvalidOperationException("Reserved route reached predicate."));
+        TestHttpContext context = new(path, CohesionHttpMethod.Get);
+        bool continued = false;
+        await middleware.InvokeAsync(context, _ => { continued = true; return Task.CompletedTask; });
+        continued.ShouldBeTrue();
+        context.ReadResponseBody().ShouldBeEmpty();
+        factory.RequestContext.ShouldBeNull();
+    }
+
     [Fact(DisplayName = "Viu Cohesion Web - server renderer: streams markup in a disposed request scope")]
     public async Task InvokeAsync_GetRequest_ShouldRenderAndDisposeScope()
     {

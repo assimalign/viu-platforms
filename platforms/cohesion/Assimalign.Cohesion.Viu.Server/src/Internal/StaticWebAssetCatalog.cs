@@ -78,11 +78,27 @@ internal sealed class StaticWebAssetCatalog
 
         if (TryResolvePhysicalPath(route, out string? resolvedPath))
         {
+            Dictionary<string, string> headers = new(StringComparer.OrdinalIgnoreCase);
+            string? encoding = null;
+            bool brotli = File.Exists(resolvedPath + ".br");
+            bool gzip = File.Exists(resolvedPath + ".gz");
+            if (brotli || gzip)
+            {
+                headers["Vary"] = "Accept-Encoding";
+                string selected = requireIdentity ? "identity" : AcceptEncoding.Select(
+                    acceptEncoding, brotli ? (gzip ? ["br", "gzip"] : ["br"]) : ["gzip"]);
+                if (selected is "br" or "gzip")
+                {
+                    encoding = selected;
+                    resolvedPath += selected == "br" ? ".br" : ".gz";
+                    headers["Content-Encoding"] = selected;
+                }
+            }
             return new StaticWebAssetDescriptor(
                 resolvedPath,
                 route,
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                ContentEncoding: null,
+                headers,
+                ContentEncoding: encoding,
                 IsEndpointAsset: false);
         }
 

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ViuPlatformProjectReference Include="Assimalign.Cohesion.Viu.ApplicationModel" />
+    <ViuPlatformPackageReference Include="Microsoft.NET.Test.Sdk" />
+    <ViuPlatformPackageReference Include="Shouldly" />
+    <ViuPlatformPackageReference Include="xunit" />
+    <ViuPlatformPackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+</Project>

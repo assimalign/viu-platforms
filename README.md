@@ -2,7 +2,7 @@
 
 This repository packages host-platform integrations for Viu. The Cohesion family adds an
 optional Cohesion application host around Viu, a browser host, Cohesion Web asset and
-server-rendering middleware, Markdown content, a development server, and a `dotnet new` template. Ordinary Viu
+server-rendering middleware, Markdown content, a development server, and `dotnet new` templates. Ordinary Viu
 composition remains independent of these packages.
 
 ## Cohesion packages
@@ -15,18 +15,19 @@ composition remains independent of these packages.
   fallback, browser refresh, MIME mapping, cross-origin isolation, and Viu server rendering.
 - `Assimalign.Cohesion.Viu.DevServer` — a packaged Cohesion development server and the MSBuild
   target that selects it from the Viu Browser SDK.
-- `Assimalign.Cohesion.Viu.Templates` — the `viu-cohesion` project template.
+- `Assimalign.Cohesion.Viu.Templates` — the `viu-cohesion` and `viu-cohesion-web` templates.
 - `Assimalign.Cohesion.Viu.Markdown` — generated Markdown catalogs, content sources, router-aware
   node rendering, page and navigation components, and optional hosting registration.
+- `Assimalign.Cohesion.Viu.ApplicationModel` — typed site validation and descriptors layered over the Web planner.
 
-All six packages are versioned together. The current platform version is `10.0.0-beta.4`; it
-composes Cohesion `10.0.0-beta.1` and Viu `10.0.0-beta.12`.
+All seven packages are versioned together. The current platform version is `10.0.0-beta.5`; it
+composes Cohesion `10.0.1-preview.3.local` and Viu `10.0.0-beta.12`.
 
-## Application model
+## Application hosting
 
 In an `Assimalign.Viu.Sdk.Browser` application, select the browser runtime explicitly before
 building. The project must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the
-Cohesion `10.0.0-beta.1` hosting surface remains preview-annotated:
+Cohesion `10.0.1-preview.3.local` hosting surface remains preview-annotated:
 
 ```csharp
 using Assimalign.Cohesion.Viu.Hosting;
@@ -67,7 +68,7 @@ public Viu lifetime; Viu beta.12 does not yet expose a browser-unload notificati
 
 ## Markdown content
 
-Reference `Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.4`. Its incremental generator reads
+Reference `Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.5`. Its incremental generator reads
 `docs/**/*.md` by default and emits `GeneratedMarkdownContent.Catalog` in the application's root
 namespace. Titles, descriptions, status, and navigation order come from the Markdown files; there
 is no frontmatter or handwritten page table. Keep the Markdown files linked as static web assets
@@ -115,9 +116,9 @@ package:
 
 ```xml
 <PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser"
-                  Version="10.0.0-beta.4" />
+                  Version="10.0.0-beta.5" />
 <PackageReference Include="Assimalign.Cohesion.Viu.DevServer"
-                  Version="10.0.0-beta.4" />
+                  Version="10.0.0-beta.5" />
 ```
 
 The DevServer target selects the Viu Browser SDK's custom-host contract, runs the packaged
@@ -138,12 +139,11 @@ Pass `--apply-cop-headers` for WebAssembly threads.
 
 ## Template
 
-After configuring credentials for the Assimalign GitHub Packages feed, install and generate the
-template:
+After packing the local family, install and generate the development template:
 
 ```powershell
-dotnet new install Assimalign.Cohesion.Viu.Templates::10.0.0-beta.4
-dotnet new viu-cohesion --name HelloViu
+dotnet new install ./_out/packages/Assimalign.Cohesion.Viu.Templates.10.0.0-beta.5.nupkg
+dotnet new viu-cohesion --name HelloViu --assimalignRoot C:/Source/repos/assimalign
 cd HelloViu
 dotnet watch
 ```
@@ -168,7 +168,71 @@ preserved 45-page route/asset baseline:
 pwsh scripts/Verify-MarkdownDocs.ps1
 ```
 
-The script restores, builds, tests, and packs all six packages into `_out/packages`. Shipping
+The script restores, builds, tests, and packs all seven packages into `_out/packages`. Shipping
 libraries target `net10.0`, use explicit registration, and enable trimming/AOT compatibility
 analysis. The Server package carries Cohesion's App.Web framework reference; Hosting.Browser has
 only its host-neutral Hosting dependency and the Viu Browser runtime dependency.
+
+## Getting the Assimalign.Cohesion packages
+
+This tree tracks unreleased Cohesion `10.0.1-preview.3` and Viu `10.0.0-beta.12` sources. Published
+package identities are immutable. With `../cohesion/_out/packages` present, ordinary Cohesion
+references default to exactly `10.0.1-preview.3.local`; override with
+`-p:CohesionSiblingPackageVersion=<identity>`. Without it they use the release floor
+`[10.0.1-preview.3, )`. The project SDK pins in `global.json` and DevServer also use `.local`:
+MSBuild SDK resolution reads `NuGet.config` before restore properties. A complete local feed is
+required; the partial canonical SDK/framework feed cannot replace the `.local` library closure.
+The isolated cache is `.nuget/packages`.
+
+Use the prepacked sibling feeds in `cohesion`, `viu`, and `cohesion-platforms`; the latter supplies
+Kubernetes/Docker/Containers at `10.0.1-preview.3`. Run this repository's `Install-Local.ps1` to pack
+all seven hosting-family packages at `10.0.0-beta.5`. CI recreates Cohesion and Viu sibling feeds
+from `COHESION_SIBLING_REF` and `VIU_SIBLING_REF` repository variables (prefer immutable commits).
+It replaces the root NuGet config so SDK and package resolution use those same feeds. Viu's
+beta.12 Browser SDK was absent from GitHub Packages when this integration was prepared.
+
+## A deployable Viu Web site
+
+```pwsh
+dotnet new install ./_out/packages/Assimalign.Cohesion.Viu.Templates.10.0.0-beta.5.nupkg
+dotnet new viu-cohesion-web --name Acme.Docs --assimalignRoot C:/Source/repos/assimalign
+cd Acme.Docs
+dotnet build
+dotnet run --project Acme.Docs.Web
+dotnet run --project Acme.Docs.AppHost -- --gateway local --mode describe
+```
+
+The template creates Client, Web and AppHost projects. Web is an enabled Web resource with a
+public HTTP endpoint. Set `ViuClientProject` on a Web executable referencing Server; the package
+establishes a non-compiling client project reference and queries the client's evaluated target
+path. `AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` selects build manifests during
+development and a physical `wwwroot` beside the executable after publication. The bare health
+probes and the resource control-plane path (`ViuApplicationOptions.ControlPlanePath`, default
+`/cohesion/v1`, plus its subtree) always pass through Viu's static and server-rendering fallbacks;
+every other route, including an application route such as `/cohesion`, belongs to the browser
+application.
+
+The server serves a source-generated `cohesion/viu-client/v1` document at `/_cohesion/client.json`
+with `Cache-Control: no-store`. It includes only application/resource/environment/gateway names
+and referenced endpoint URLs. `ClientConfigurationPath=null` disables it. Browser
+`AddClientConfiguration(httpClient)` loads it before Viu starts and registers a synchronous
+`ViuClientConfigurationProvider`; failed requests warn and retain `ViuClientConfiguration.Empty`.
+
+```pwsh
+dotnet publish Acme.Docs.Web -c Release -r linux-arm64
+dotnet msbuild Acme.Docs.Web/Acme.Docs.Web.csproj -t:CohesionPublishImage -p:Configuration=Release -p:RuntimeIdentifier=linux-x64 -p:CohesionContainerRepository=docs/site -p:CohesionContainerPush=false
+```
+
+Publishing Web publishes the client in Release with the browser's own RID and trimming settings,
+then includes its complete `wwwroot` in Web's publish output. Cohesion's image target creates a
+self-contained OCI archive without a Dockerfile. It needs the Cohesion App/App.Web runtime packs
+for the chosen RID. The current Cohesion image resolver accepts only `linux-x64` and
+`linux-musl-x64`; ordinary `linux-arm64` publish works, but the image target needs an upstream
+ARM64 extension before it can target the local Podman machine. Release images require NativeAOT
+and a supported Linux build host/toolchain; Debug permits self-contained JIT images.
+
+`Assimalign.Cohesion.Viu.ApplicationModel` adds `AddViuWeb` validation and typed metadata, while
+using exactly the `AddWeb` plan. Generated `AddAllResources()` still calls `AddWeb` until Cohesion's
+`CohesionGatewayResourceKind` selection supports the overlay. Keep the Web executable's manifest
+application model as `Assimalign.Cohesion.Web.ApplicationModel`. See the
+[ApplicationModel overview](platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/docs/OVERVIEW.md).

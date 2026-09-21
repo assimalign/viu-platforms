@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Assimalign",
+  "classifications": ["Viu", "Web", "WebAssembly", "Cohesion"],
+  "identity": "Assimalign.Cohesion.Viu.Templates.WebResource",
+  "name": "Viu browser client with Cohesion Web resource and gateway",
+  "shortName": "viu-cohesion-web",
+  "sourceName": "CohesionViuSite",
+  "preferNameDirectory": true,
+  "tags": { "language": "C#", "type": "solution" },
+  "symbols": {
+    "cohesionVersion": {
+      "type": "parameter", "dataType": "string", "defaultValue": "10.0.1-preview.3.local",
+      "replaces": "__COHESION_PACKAGE_VERSION__", "description": "The complete Cohesion SDK/framework/library identity."
+    },
+    "assimalignRoot": {
+      "type": "parameter", "dataType": "string", "defaultValue": "..",
+      "replaces": "__ASSIMALIGN_ROOT__", "description": "Directory containing cohesion, viu, cohesion-platforms and viu-platforms local feeds."
+    },
+    "nameLower": { "type": "generated", "generator": "casing", "parameters": { "source": "name", "toLower": true } },
+    "resource": {
+      "type": "generated", "generator": "regex",
+      "parameters": { "source": "nameLower", "steps": [{ "regex": "[^a-z0-9]+", "replacement": "-" }] },
+      "replaces": "__APPLICATION_NAME__"
+    }
+  },
+  "primaryOutputs": [{ "path": "CohesionViuSite.slnx" }]
+}

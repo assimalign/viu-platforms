@@ -2,6 +2,8 @@
   <Folder Name="/platforms/" />
   <Folder Name="/platforms/aspnetcore/" />
   <Folder Name="/platforms/cohesion/">
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/src/Assimalign.Cohesion.Viu.ApplicationModel.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/test/Assimalign.Cohesion.Viu.ApplicationModel.Tests.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/src/Assimalign.Cohesion.Viu.Markdown.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/test/Assimalign.Cohesion.Viu.Markdown.Tests.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/generator/Assimalign.Cohesion.Viu.Markdown.Generator.csproj" />

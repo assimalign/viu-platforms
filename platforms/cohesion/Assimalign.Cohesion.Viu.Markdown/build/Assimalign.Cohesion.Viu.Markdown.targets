@@ -13,7 +13,7 @@
   <!-- Evaluation exposes the same AdditionalFiles to IDE project discovery and command-line
        compilation, before Roslyn's editorconfig targets capture their metadata. -->
   <PropertyGroup>
-    <_ViuMarkdownContentRootFullPath>$([System.IO.Path]::GetFullPath('$(ViuMarkdownContentRoot)', '$(MSBuildProjectDirectory)'))</_ViuMarkdownContentRootFullPath>
+    <_ViuMarkdownContentRootFullPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(ViuMarkdownContentRoot)'))</_ViuMarkdownContentRootFullPath>
   </PropertyGroup>
   <ItemGroup>
     <ViuMarkdownContent Include="$(_ViuMarkdownContentRootFullPath)\$(ViuMarkdownContentGlob)"

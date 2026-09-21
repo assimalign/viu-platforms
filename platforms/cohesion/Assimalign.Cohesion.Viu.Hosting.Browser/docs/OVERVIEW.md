@@ -34,7 +34,7 @@ await application.RunAsync();
 ```
 
 The consuming project must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` for the
-preview-annotated Cohesion `10.0.0-beta.1` hosting APIs.
+preview-annotated Cohesion `10.0.1-preview.3.local` hosting APIs.
 
 `ConfigureBrowser(...)` installs a host factory explicitly; it does not scan assemblies or use a
 module initializer. `Build()` copies every Viu application option into `BrowserApplicationBuilder`
@@ -51,3 +51,12 @@ The package references only `Assimalign.Cohesion.Viu.Hosting` and `Assimalign.Vi
 Configuration, dependency injection, and hosting arrive through the host-neutral package. It does
 not reference `Assimalign.Cohesion.App`, does not use `DedicatedThreadService`, and ships no
 `wwwroot` content. The Browser framework supplies `_content/Assimalign.Viu.Browser/viu-dom.js`.
+
+## Load the resource client document
+
+Call `builder.AddClientConfiguration(httpClient)` before `Build()`. An optional
+`ViuClientConfigurationOptions` callback changes `Path` (default `/_cohesion/client.json`) and
+`Timeout` (ten seconds). Register the application's `WarnHandler` to observe missing, malformed,
+unsupported-schema, failed or timed-out requests. They retain `ViuClientConfiguration.Empty`.
+The supplied HTTP client is borrowed and must have a base address for relative paths.
+Components resolve `ViuClientConfigurationProvider` and synchronously read `Current`.

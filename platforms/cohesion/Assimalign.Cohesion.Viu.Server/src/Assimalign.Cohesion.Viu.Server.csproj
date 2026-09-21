@@ -1,5 +1,6 @@
 <Project Sdk="Assimalign.Cohesion.Sdk.Web">
   <PropertyGroup>
+    <OutputType>Library</OutputType>
     <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -17,5 +18,7 @@
 
   <ItemGroup>
     <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+    <None Include="..\build\Assimalign.Cohesion.Viu.Server.props" Pack="true" PackagePath="buildTransitive\" />
+    <None Include="..\build\Assimalign.Cohesion.Viu.Server.targets" Pack="true" PackagePath="buildTransitive\" />
   </ItemGroup>
 </Project>
