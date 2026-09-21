@@ -9,6 +9,7 @@
     <CompilerVisibleProperty Include="ViuMarkdownGeneratedNamespace" />
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ViuMarkdownContent" />
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ViuMarkdownSourceRelativePath" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ViuMarkdownAssetName" />
   </ItemGroup>
   <!-- Evaluation exposes the same AdditionalFiles to IDE project discovery and command-line
        compilation, before Roslyn's editorconfig targets capture their metadata. -->
@@ -21,6 +22,12 @@
     <AdditionalFiles Include="@(ViuMarkdownContent)">
       <ViuMarkdownContent>true</ViuMarkdownContent>
       <ViuMarkdownSourceRelativePath>$([MSBuild]::MakeRelative('$(_ViuMarkdownContentRootFullPath)', '%(FullPath)'))</ViuMarkdownSourceRelativePath>
+      <!-- The packaged and served asset name. MSBuild computes it once here; the source generator
+           reads it as compiler-visible metadata and packagers read it from these items, so the
+           catalog, the package layout, and the served URL never disagree. The hash input is the
+           forward-slash source path, identical on every operating system. -->
+      <ViuMarkdownAssetName Condition="'$(ViuMarkdownAssetNaming)' == 'hashed'">$([MSBuild]::StableStringHash($([System.String]::Copy('$([MSBuild]::MakeRelative('$(_ViuMarkdownContentRootFullPath)', '%(FullPath)'))').Replace('\', '/')), 'Sha256').Substring(0, 12).ToLowerInvariant()).md</ViuMarkdownAssetName>
+      <ViuMarkdownAssetName Condition="'$(ViuMarkdownAssetNaming)' != 'hashed'">$([System.String]::Copy('$([MSBuild]::MakeRelative('$(_ViuMarkdownContentRootFullPath)', '%(FullPath)'))').Replace('\', '/'))</ViuMarkdownAssetName>
     </AdditionalFiles>
   </ItemGroup>
 </Project>

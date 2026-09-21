@@ -30,7 +30,13 @@ Items flow to `AdditionalFiles` with their content-root-relative paths. The gene
 outside those compiler inputs and emits no physical files itself.
 
 Use lowercase kebab-case filenames. `index.md` maps to `/`, `guide/index.md` to `/guide`, and
-`guide/quick-start.md` to `/guide/quick-start`. Asset paths retain the configured `docs/` prefix.
+`guide/quick-start.md` to `/guide/quick-start`. Asset paths carry the configured `docs/` prefix
+followed by the page's asset name: by default (`ViuMarkdownAssetNaming=hashed`) the first twelve
+hex digits of the SHA-256 of the forward-slash source path plus `.md`, so
+`guide/quick-start.md` is served as `docs/<hash>.md`; set `ViuMarkdownAssetNaming=source` to keep
+the source path. The build computes the name once as `ViuMarkdownAssetName` metadata on the
+`AdditionalFiles` items, so packaging targets and the generated catalog agree. Relative links
+between pages resolve through source paths, never asset names.
 Put the page's H1 on line one, then a blank line and an opening description paragraph. An opening
 `> **Status:** ...` blockquote supplies optional status. Relative `.md` links in a folder's index
 order its navigation; unlinked pages and folders follow in ordinal order. No frontmatter is read.

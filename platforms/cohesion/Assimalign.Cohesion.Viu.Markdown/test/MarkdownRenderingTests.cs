@@ -44,6 +44,30 @@ public sealed class MarkdownRenderingTests
     public void AssetResolutionUsesSegments(string current, string destination, string expected)
         => MarkdownLinks.ResolveAssetPath(current, destination).ShouldBe(expected);
 
+    [Theory]
+    [InlineData("target.md#details", "/guide/target#details", true)]
+    [InlineData("../index.md", "/", true)]
+    [InlineData("/index.md", "/", true)]
+    [InlineData("/docs/8d6f5e4c3b2a.md", "/", true)]
+    [InlineData("missing.md", "missing.md", false)]
+    public void LinkResolutionUsesSourcePathsWhenAssetNamesAreHashed(string destination, string expected, bool isInternal)
+    {
+        // Arrange: hashed asset names carry no directory structure, so authored relative links
+        // must resolve through the source-relative paths.
+        MarkdownContentCatalog catalog = new MarkdownContentCatalogBuilder("docs/")
+            .Add(new MarkdownPageEntry("/", "docs/8d6f5e4c3b2a.md", "Home", SourceRelativePath: "index.md"))
+            .Add(new MarkdownPageEntry("/guide/current", "docs/1a2b3c4d5e6f.md", "Current", SourceRelativePath: "guide/current.md"))
+            .Add(new MarkdownPageEntry("/guide/target", "docs/f6e5d4c3b2a1.md", "Target", SourceRelativePath: "guide/target.md"))
+            .Build();
+
+        // Act
+        MarkdownLinkResolution resolution = MarkdownLinks.Resolve(catalog, Page(catalog), destination);
+
+        // Assert
+        resolution.Destination.ShouldBe(expected);
+        resolution.IsInternal.ShouldBe(isInternal);
+    }
+
     [Fact]
     public void InternalLinksCarryRouterArgumentsAndImmutableDefaultSlots()
     {

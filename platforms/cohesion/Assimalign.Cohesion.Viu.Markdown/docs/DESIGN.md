@@ -25,7 +25,16 @@ The generator and runtime builder compile the same internal, self-contained extr
 It examines lines according to the documentation convention: first-line H1, opening paragraph,
 optional status blockquote, and relative `.md` links in each folder's index. Frontmatter is not a
 second metadata system. Filenames derive routes; a physical root, asset prefix, and route base are
-independent settings. Input ordering never changes output. Index links rank direct pages and child
+independent settings. The asset name is a delivery detail, distinct from the source path that is
+the page's identity: by default MSBuild hashes the forward-slash source path (`StableStringHash`,
+SHA-256, twelve hex digits, identical on Core and .NET Framework MSBuild) into
+`ViuMarkdownAssetName`, the generator composes the asset path from the prefix and that name, and
+packagers place the file under it. Deep documentation trees then never produce a cached, copied,
+or published path past Windows `MAX_PATH`, which Visual Studio's MSBuild still enforces.
+Consequences: `MarkdownLinks` resolves relative `.md` links against the current page's source
+directory and looks pages up by source path (absolute destinations try the asset root first, then
+the source root), and `FileSystemMarkdownContentSource` accepts the catalog so a hashed asset path
+maps back to its authored file. Input ordering never changes output. Index links rank direct pages and child
 sections; unlinked entries follow in ordinal order. Page and section order values share the
 parent's navigation sequence, so depth-first catalog enumeration honors interleaved links to
 direct pages and child sections. The catalog retains one root section so its

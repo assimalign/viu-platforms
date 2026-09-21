@@ -104,6 +104,30 @@ public sealed class GeneratorTests
     }
 
     [Fact]
+    public void HashedAssetNamesFromBuildMetadataReplaceTheSourcePathInAssetPathsOnly()
+    {
+        // Arrange: the build supplies the packaged asset name; the source path stays the identity.
+        ContentText[] files = [
+            new("index.md", "# Home\n\nWelcome.\n\n[Guide](guide/index.md)", assetName: "a1b2c3d4e5f6.md"),
+            new("guide/index.md", "# Guide\n\nSummary.\n\n[Home](../index.md)", assetName: "0f1e2d3c4b5a.md")];
+        GeneratorDriver driver = CreateDriver(files, new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["build_property.ViuMarkdownGeneratedNamespace"] = "TestContent",
+            ["build_property.ViuMarkdownContentPrefix"] = "_content/Docs/docs/",
+            ["build_property.ViuMarkdownRouteBase"] = "/docs",
+        });
+
+        // Act
+        driver = driver.RunGenerators(CreateCompilation());
+        MarkdownPageEntry[] entries = ReadPageEntries(Generated(driver.GetRunResult())).ToArray();
+
+        // Assert
+        entries.Select(entry => entry.AssetPath).ShouldBe(["_content/Docs/docs/a1b2c3d4e5f6.md", "_content/Docs/docs/0f1e2d3c4b5a.md"]);
+        entries.Select(entry => entry.SourceRelativePath).ShouldBe(["index.md", "guide/index.md"]);
+        entries.Select(entry => entry.RoutePath).ShouldBe(["/docs", "/docs/guide"]);
+    }
+
+    [Fact]
     public void InvalidNamespaceAndDuplicateSourcePathsAreBuildErrors()
     {
         GeneratorDriver driver = CreateDriver([new ContentText("index.md", "# Home")],
@@ -177,11 +201,12 @@ public sealed class GeneratorTests
         }
     }
 
-    private sealed class ContentText(string relativePath, string text, bool selected = true) : AdditionalText
+    private sealed class ContentText(string relativePath, string text, bool selected = true, string? assetName = null) : AdditionalText
     {
         internal string RelativePath { get; } = relativePath;
         internal string Text { get; } = text;
         internal bool Selected { get; } = selected;
+        internal string? AssetName { get; } = assetName;
         public override string Path => "/catalog-input/" + RelativePath;
         public override SourceText GetText(CancellationToken cancellationToken = default) => SourceText.From(Text);
     }
@@ -191,11 +216,19 @@ public sealed class GeneratorTests
         public override AnalyzerConfigOptions GlobalOptions { get; } = new ContentOptions(properties);
         public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => new ContentOptions([]);
         public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
-            => new ContentOptions(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ContentText content = (ContentText)textFile;
+            Dictionary<string, string> values = new(StringComparer.Ordinal)
             {
-                ["build_metadata.AdditionalFiles.ViuMarkdownContent"] = ((ContentText)textFile).Selected ? "true" : "false",
-                ["build_metadata.AdditionalFiles.ViuMarkdownSourceRelativePath"] = ((ContentText)textFile).RelativePath,
-            });
+                ["build_metadata.AdditionalFiles.ViuMarkdownContent"] = content.Selected ? "true" : "false",
+                ["build_metadata.AdditionalFiles.ViuMarkdownSourceRelativePath"] = content.RelativePath,
+            };
+            if (content.AssetName is not null)
+            {
+                values["build_metadata.AdditionalFiles.ViuMarkdownAssetName"] = content.AssetName;
+            }
+            return new ContentOptions(values);
+        }
     }
 
     private sealed class ContentOptions(Dictionary<string, string> values) : AnalyzerConfigOptions

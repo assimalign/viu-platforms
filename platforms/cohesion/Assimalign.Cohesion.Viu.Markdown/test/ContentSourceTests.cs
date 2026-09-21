@@ -15,6 +15,34 @@ namespace Assimalign.Cohesion.Viu.Markdown.Tests;
 public sealed class ContentSourceTests
 {
     [Fact]
+    public async Task FileSystemSourceWithACatalogReadsHashedAssetsFromTheirSourceFiles()
+    {
+        // Arrange
+        string directory = Path.Combine(Path.GetTempPath(), "viu-markdown-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(directory, "guide"));
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(directory, "index.md"), "# Home\n\nWelcome.");
+            await File.WriteAllTextAsync(Path.Combine(directory, "guide", "page.md"), "# Page\n\nSummary.");
+            MarkdownContentCatalog catalog = new MarkdownContentCatalogBuilder("docs/")
+                .Add(new MarkdownPageEntry("/", "docs/8d6f5e4c3b2a.md", "Home", SourceRelativePath: "index.md"))
+                .Add(new MarkdownPageEntry("/guide/page", "docs/1a2b3c4d5e6f.md", "Page", SourceRelativePath: "guide/page.md"))
+                .Build();
+            FileSystemMarkdownContentSource source = new(directory, "docs/", catalog);
+
+            // Act / Assert
+            (await source.ListAsync()).ShouldBe(["docs/1a2b3c4d5e6f.md", "docs/8d6f5e4c3b2a.md"]);
+            (await source.ReadAsync("docs/1a2b3c4d5e6f.md")).ShouldStartWith("# Page");
+            (await source.ReadAsync("docs/8d6f5e4c3b2a.md")).ShouldStartWith("# Home");
+            Should.Throw<ArgumentException>(() => source.ReadAsync("docs/guide/page.md"));
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public async Task FileSystemSourceListsAndBuildsTheSameCatalogWithAnAssetPrefix()
     {
         string directory = Path.Combine(Path.GetTempPath(), "viu-markdown-" + Guid.NewGuid().ToString("N"));

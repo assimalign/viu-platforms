@@ -43,10 +43,37 @@ public static class MarkdownLinks
             return new(destination, false);
         }
 
-        string assetPath = ResolveAssetPath(currentPage.AssetPath, path);
-        return catalog.TryGetPageByAssetPath(assetPath, out MarkdownPage? page)
+        return TryResolvePage(catalog, currentPage, path, out MarkdownPage? page)
             ? new(page.RoutePath + fragment, true)
             : new(destination, false);
+    }
+
+    /// <summary>
+    /// Resolves a Markdown path the way an author wrote it: relative destinations are resolved
+    /// against the current page's source directory and matched by source path, because asset
+    /// paths are delivery names that may be hashed; absolute destinations name an asset path from
+    /// the asset root first, then a source path. Pages without a source path fall back to
+    /// asset-path resolution.
+    /// </summary>
+    private static bool TryResolvePage(
+        MarkdownContentCatalog catalog,
+        MarkdownPage currentPage,
+        string path,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out MarkdownPage? page)
+    {
+        if (path.StartsWith('/'))
+        {
+            string root = ResolveAssetPath(string.Empty, path);
+            return catalog.TryGetPageByAssetPath(root, out page) || catalog.TryGetPageBySourcePath(root, out page);
+        }
+
+        if (currentPage.SourceRelativePath.Length > 0
+            && catalog.TryGetPageBySourcePath(ResolveAssetPath(currentPage.SourceRelativePath, path), out page))
+        {
+            return true;
+        }
+
+        return catalog.TryGetPageByAssetPath(ResolveAssetPath(currentPage.AssetPath, path), out page);
     }
 
     /// <summary>

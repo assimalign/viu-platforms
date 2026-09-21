@@ -44,9 +44,10 @@ internal sealed class ExtractionDiagnostic
 internal static class ContentExtraction
 {
     internal static ExtractedPage Extract(string path, string markdown, string prefix, string routeBase,
-        Action<ExtractionDiagnostic> report)
+        Action<ExtractionDiagnostic> report, string? assetName = null)
     {
         string relativePath = NormalizePath(path);
+        string assetRelativePath = string.IsNullOrWhiteSpace(assetName) ? relativePath : NormalizePath(assetName!);
         if (relativePath.Split('/').Any(segment => segment == "..") || relativePath.Contains(':'))
         {
             report(new ExtractionDiagnostic("VIUMD006", relativePath,
@@ -78,7 +79,7 @@ internal static class ContentExtraction
         ExtractedPage page = new ExtractedPage
         {
             RoutePath = NormalizeRoute(routeBase.TrimEnd('/') + "/" + route),
-            AssetPath = assetPrefix.Length > 0 ? assetPrefix + "/" + relativePath : relativePath,
+            AssetPath = assetPrefix.Length > 0 ? assetPrefix + "/" + assetRelativePath : assetRelativePath,
             SourceRelativePath = relativePath,
             Title = title,
         };

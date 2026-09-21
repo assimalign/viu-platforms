@@ -5,5 +5,9 @@
     <ViuMarkdownRouteBase Condition="'$(ViuMarkdownRouteBase)' == ''">/</ViuMarkdownRouteBase>
     <ViuMarkdownContentGlob Condition="'$(ViuMarkdownContentGlob)' == ''">**\*.md</ViuMarkdownContentGlob>
     <ViuMarkdownEnableDefaultItems Condition="'$(ViuMarkdownEnableDefaultItems)' == ''">true</ViuMarkdownEnableDefaultItems>
+    <!-- hashed: every page's asset name is the first twelve hex digits of the SHA-256 of its
+         forward-slash source path plus ".md", so packaged and copied asset paths stay short and
+         flat on every file system (Windows MAX_PATH included). source: the source-relative path. -->
+    <ViuMarkdownAssetNaming Condition="'$(ViuMarkdownAssetNaming)' == ''">hashed</ViuMarkdownAssetNaming>
   </PropertyGroup>
 </Project>

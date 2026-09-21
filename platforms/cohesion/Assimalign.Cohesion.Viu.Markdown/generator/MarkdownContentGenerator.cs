@@ -41,16 +41,20 @@ public sealed class MarkdownContentGenerator : IIncrementalGenerator
             return null;
         }
         metadata.TryGetValue("build_metadata.AdditionalFiles.ViuMarkdownSourceRelativePath", out string? relativePath);
+        // The build computes the packaged asset name (hashed by default) so the catalog and the
+        // package layout agree; an absent value keeps the source-relative path as the asset name.
+        metadata.TryGetValue("build_metadata.AdditionalFiles.ViuMarkdownAssetName", out string? assetName);
         SourceText? text = file.GetText(cancellationToken);
         return text is null ? null : new ContentFile(file.Path, relativePath ?? file.Path, text.ToString(),
             GetOption(options.GlobalOptions, "ViuMarkdownContentPrefix", "docs/"),
-            GetOption(options.GlobalOptions, "ViuMarkdownRouteBase", "/"));
+            GetOption(options.GlobalOptions, "ViuMarkdownRouteBase", "/"),
+            string.IsNullOrWhiteSpace(assetName) ? null : assetName);
     }
 
     private static ExtractedContent Extract(ContentFile file)
     {
         List<ExtractionDiagnostic> diagnostics = new List<ExtractionDiagnostic>();
-        ExtractedPage page = ContentExtraction.Extract(file.RelativePath, file.Text, file.Prefix, file.RouteBase, diagnostics.Add);
+        ExtractedPage page = ContentExtraction.Extract(file.RelativePath, file.Text, file.Prefix, file.RouteBase, diagnostics.Add, file.AssetName);
         return new ExtractedContent(file, page, diagnostics);
     }
 
@@ -140,13 +144,15 @@ public sealed class MarkdownContentGenerator : IIncrementalGenerator
 
     private sealed class ContentFile : IEquatable<ContentFile>
     {
-        internal ContentFile(string path, string relativePath, string text, string prefix, string routeBase)
+        internal ContentFile(string path, string relativePath, string text, string prefix, string routeBase,
+            string? assetName = null)
         {
             Path = path;
             RelativePath = relativePath;
             Text = text;
             Prefix = prefix;
             RouteBase = routeBase;
+            AssetName = assetName;
         }
 
         internal string Path { get; }
@@ -154,10 +160,11 @@ public sealed class MarkdownContentGenerator : IIncrementalGenerator
         internal string Text { get; }
         internal string Prefix { get; }
         internal string RouteBase { get; }
+        internal string? AssetName { get; }
 
         public bool Equals(ContentFile? other)
             => other is not null && Path == other.Path && RelativePath == other.RelativePath && Text == other.Text &&
-                Prefix == other.Prefix && RouteBase == other.RouteBase;
+                Prefix == other.Prefix && RouteBase == other.RouteBase && AssetName == other.AssetName;
         public override bool Equals(object? other) => other is ContentFile file && Equals(file);
         public override int GetHashCode() => Path.GetHashCode();
     }

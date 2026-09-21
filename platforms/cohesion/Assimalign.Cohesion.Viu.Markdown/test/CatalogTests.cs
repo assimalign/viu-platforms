@@ -34,6 +34,9 @@ public sealed class CatalogTests
         first.Section!.Title.ShouldBe("User Guide");
         catalog.TryGetPageByAssetPath("/content\\guide/first.md", out MarkdownPage? asset).ShouldBeTrue();
         asset.ShouldBeSameAs(first);
+        catalog.TryGetPageBySourcePath("guide\\first.md", out MarkdownPage? source).ShouldBeTrue();
+        source.ShouldBeSameAs(first);
+        catalog.TryGetPageBySourcePath("content/guide/first.md", out _).ShouldBeFalse();
         catalog.TryGetPageByRoute("/MANUAL/guide/first", out _).ShouldBeFalse();
         catalog.TryGetPageByAssetPath("Content/guide/first.md", out _).ShouldBeFalse();
         builder.Diagnostics.ShouldBeEmpty();

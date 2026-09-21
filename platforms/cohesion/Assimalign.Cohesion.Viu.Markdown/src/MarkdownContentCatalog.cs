@@ -10,6 +10,7 @@ public sealed class MarkdownContentCatalog
 {
     private readonly Dictionary<string, MarkdownPage> _pagesByRoute = new(StringComparer.Ordinal);
     private readonly Dictionary<string, MarkdownPage> _pagesByAssetPath = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, MarkdownPage> _pagesBySourcePath = new(StringComparer.Ordinal);
 
     /// <summary>Copies the section tree and rejects duplicate normalized routes or assets.</summary>
     public MarkdownContentCatalog(IEnumerable<MarkdownSection> sections)
@@ -36,6 +37,17 @@ public sealed class MarkdownContentCatalog
     /// <summary>Finds a page using normalized ordinal asset equality without changing case.</summary>
     public bool TryGetPageByAssetPath(string assetPath, [NotNullWhen(true)] out MarkdownPage? page)
         => _pagesByAssetPath.TryGetValue(NormalizeAssetPath(assetPath), out page);
+
+    /// <summary>
+    /// Finds a page by its path relative to the physical content root, using normalized ordinal
+    /// equality. Pages created without a source path are not indexed here.
+    /// </summary>
+    /// <remarks>
+    /// Asset paths are delivery names and may be hashed; the source path is the stable identity
+    /// that relative Markdown links between pages refer to.
+    /// </remarks>
+    public bool TryGetPageBySourcePath(string sourceRelativePath, [NotNullWhen(true)] out MarkdownPage? page)
+        => _pagesBySourcePath.TryGetValue(NormalizeAssetPath(sourceRelativePath), out page);
 
     /// <summary>Converts separators, trims whitespace and edge slashes, and guarantees a leading slash.</summary>
     public static string NormalizeRoute(string routePath)
@@ -64,6 +76,10 @@ public sealed class MarkdownContentCatalog
             {
                 _pagesByRoute.Add(page.RoutePath, page);
                 _pagesByAssetPath.Add(page.AssetPath, page);
+                if (page.SourceRelativePath.Length > 0)
+                {
+                    _pagesBySourcePath.TryAdd(NormalizeAssetPath(page.SourceRelativePath), page);
+                }
                 pages.Add(page);
             }
             else if (child is not null)
