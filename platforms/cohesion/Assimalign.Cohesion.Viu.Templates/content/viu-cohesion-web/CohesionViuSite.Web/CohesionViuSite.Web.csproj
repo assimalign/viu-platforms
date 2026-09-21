@@ -11,7 +11,7 @@
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-beta.5" />
+    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-preview.1" />
     <CohesionEndpoint Update="http" Public="true" DevPort="8080" />
   </ItemGroup>
 </Project>

@@ -11,14 +11,14 @@ verbs remain available for non-hosting pipeline implementations.
 This external platform package intentionally composes `Web.Hosting`; Cohesion's hosting-isolation
 rule constrains feature projects inside the Cohesion repository, while this Server package is the
 cross-repository host bridge. It therefore consumes
-`Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local` and its App/App.Web shared frameworks rather than direct
+`Assimalign.Cohesion.Sdk.Web/10.0.0-preview.1.local` and its App/App.Web shared frameworks rather than direct
 Cohesion Web library packages. Phase 6 adds the explicit Hosting application/lifecycle linkage,
 while listener ownership and process lifetime remain with the Cohesion Web host.
 
 The package's nuspec carries framework references for `Assimalign.Cohesion.App` and
 `Assimalign.Cohesion.App.Web`; its ordinary dependencies are
-`Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.5` and
-`Assimalign.Viu.ServerRenderer` `10.0.0-beta.12`. Cohesion's preview.3 HTTP/Web API remains a preview
+`Assimalign.Cohesion.Viu.Hosting` `10.0.0-preview.1` and
+`Assimalign.Viu.ServerRenderer` `10.0.0-preview.1`. Cohesion's preview.3 HTTP/Web API remains a preview
 surface, so this assembly opts in while avoiding runtime-preview mechanisms of its own.
 
 ## Manifest model and asset resolution

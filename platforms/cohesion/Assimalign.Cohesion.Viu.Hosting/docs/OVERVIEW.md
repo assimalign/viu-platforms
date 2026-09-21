@@ -41,7 +41,7 @@ The builder exposes:
 - a single `Build()` operation.
 
 Consumers must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the composed
-Cohesion `10.0.1-preview.3.local` hosting surface remains preview-annotated.
+Cohesion `10.0.0-preview.1.local` hosting surface remains preview-annotated.
 
 The built Cohesion provider replaces any manually assigned `ApplicationOptions.Services`. Viu
 component activation therefore sees the same provider as host services. `IConfiguration`,
@@ -77,7 +77,7 @@ is mutable, but changing it does not change the application's retained compositi
 
 ## Client document contract
 
-Version `10.0.0-beta.5` includes immutable `ViuClientConfiguration` and
+Version `10.0.0-preview.1` includes immutable `ViuClientConfiguration` and
 `ViuClientConfigurationJsonContext` for `cohesion/viu-client/v1`. The document contains public
 application, resource, environment and gateway names plus a nested resource/endpoint URL map.
 The constructor defensively copies both map levels; `Empty` represents unavailable configuration.

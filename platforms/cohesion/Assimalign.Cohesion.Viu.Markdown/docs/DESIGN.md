@@ -2,9 +2,9 @@
 
 ## Boundary and package placement
 
-`Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.5` is the sixth Cohesion Viu package. The
-runtime references Hosting, published Cohesion Content.Markdown `10.0.1-preview.3.local`, and Viu Router,
-Components, and Reactivity `10.0.0-beta.12`. It references no Viu Browser, platform Server, Cohesion
+`Assimalign.Cohesion.Viu.Markdown` version `10.0.0-preview.1` is the sixth Cohesion Viu package. The
+runtime references Hosting, published Cohesion Content.Markdown `10.0.0-preview.1.local`, and Viu Router,
+Components, and Reactivity `10.0.0-preview.1`. It references no Viu Browser, platform Server, Cohesion
 Web package, or Cohesion App shared framework. HTTP and file-system sources are ordinary .NET
 implementations of one host-neutral contract. All registrations use instances and explicit
 factories. Public runtime APIs inherit the repository's `EnablePreviewFeatures=true` policy and

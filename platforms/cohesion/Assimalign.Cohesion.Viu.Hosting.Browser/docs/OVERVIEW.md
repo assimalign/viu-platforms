@@ -34,7 +34,7 @@ await application.RunAsync();
 ```
 
 The consuming project must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` for the
-preview-annotated Cohesion `10.0.1-preview.3.local` hosting APIs.
+preview-annotated Cohesion `10.0.0-preview.1.local` hosting APIs.
 
 `ConfigureBrowser(...)` installs a host factory explicitly; it does not scan assemblies or use a
 module initializer. `Build()` copies every Viu application option into `BrowserApplicationBuilder`

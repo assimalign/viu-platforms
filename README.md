@@ -20,14 +20,14 @@ composition remains independent of these packages.
   node rendering, page and navigation components, and optional hosting registration.
 - `Assimalign.Cohesion.Viu.ApplicationModel` — typed site validation and descriptors layered over the Web planner.
 
-All seven packages are versioned together. The current platform version is `10.0.0-beta.5`; it
-composes Cohesion `10.0.1-preview.3.local` and Viu `10.0.0-beta.12`.
+All seven packages are versioned together. The current platform version is `10.0.0-preview.1`; it
+composes Cohesion `10.0.0-preview.1.local` and Viu `10.0.0-preview.1`.
 
 ## Application hosting
 
 In an `Assimalign.Viu.Sdk.Browser` application, select the browser runtime explicitly before
 building. The project must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the
-Cohesion `10.0.1-preview.3.local` hosting surface remains preview-annotated:
+Cohesion `10.0.0-preview.1.local` hosting surface remains preview-annotated:
 
 ```csharp
 using Assimalign.Cohesion.Viu.Hosting;
@@ -68,7 +68,7 @@ public Viu lifetime; Viu beta.12 does not yet expose a browser-unload notificati
 
 ## Markdown content
 
-Reference `Assimalign.Cohesion.Viu.Markdown` version `10.0.0-beta.5`. Its incremental generator reads
+Reference `Assimalign.Cohesion.Viu.Markdown` version `10.0.0-preview.1`. Its incremental generator reads
 `docs/**/*.md` by default and emits `GeneratedMarkdownContent.Catalog` in the application's root
 namespace. Titles, descriptions, status, and navigation order come from the Markdown files; there
 is no frontmatter or handwritten page table. Keep the Markdown files linked as static web assets
@@ -116,9 +116,9 @@ package:
 
 ```xml
 <PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser"
-                  Version="10.0.0-beta.5" />
+                  Version="10.0.0-preview.1" />
 <PackageReference Include="Assimalign.Cohesion.Viu.DevServer"
-                  Version="10.0.0-beta.5" />
+                  Version="10.0.0-preview.1" />
 ```
 
 The DevServer target selects the Viu Browser SDK's custom-host contract, runs the packaged
@@ -142,7 +142,7 @@ Pass `--apply-cop-headers` for WebAssembly threads.
 After packing the local family, install and generate the development template:
 
 ```powershell
-dotnet new install ./_out/packages/Assimalign.Cohesion.Viu.Templates.10.0.0-beta.5.nupkg
+dotnet new install ./_out/packages/Assimalign.Cohesion.Viu.Templates.10.0.0-preview.1.nupkg
 dotnet new viu-cohesion --name HelloViu --assimalignRoot C:/Source/repos/assimalign
 cd HelloViu
 dotnet watch
@@ -175,18 +175,18 @@ only its host-neutral Hosting dependency and the Viu Browser runtime dependency.
 
 ## Getting the Assimalign.Cohesion packages
 
-This tree tracks unreleased Cohesion `10.0.1-preview.3` and Viu `10.0.0-beta.12` sources. Published
+This tree tracks unreleased Cohesion `10.0.0-preview.1` and Viu `10.0.0-preview.1` sources. Published
 package identities are immutable. With `../cohesion/_out/packages` present, ordinary Cohesion
-references default to exactly `10.0.1-preview.3.local`; override with
+references default to exactly `10.0.0-preview.1.local`; override with
 `-p:CohesionSiblingPackageVersion=<identity>`. Without it they use the release floor
-`[10.0.1-preview.3, )`. The project SDK pins in `global.json` and DevServer also use `.local`:
+`[10.0.0-preview.1, )`. The project SDK pins in `global.json` and DevServer also use `.local`:
 MSBuild SDK resolution reads `NuGet.config` before restore properties. A complete local feed is
 required; the partial canonical SDK/framework feed cannot replace the `.local` library closure.
 The isolated cache is `.nuget/packages`.
 
 Use the prepacked sibling feeds in `cohesion`, `viu`, and `cohesion-platforms`; the latter supplies
-Kubernetes/Docker/Containers at `10.0.1-preview.3`. Run this repository's `Install-Local.ps1` to pack
-all seven hosting-family packages at `10.0.0-beta.5`. CI recreates Cohesion and Viu sibling feeds
+Kubernetes/Docker/Containers at `10.0.0-preview.1`. Run this repository's `Install-Local.ps1` to pack
+all seven hosting-family packages at `10.0.0-preview.1`. CI recreates Cohesion and Viu sibling feeds
 from `COHESION_SIBLING_REF` and `VIU_SIBLING_REF` repository variables (prefer immutable commits).
 It replaces the root NuGet config so SDK and package resolution use those same feeds. Viu's
 beta.12 Browser SDK was absent from GitHub Packages when this integration was prepared.
@@ -194,7 +194,7 @@ beta.12 Browser SDK was absent from GitHub Packages when this integration was pr
 ## A deployable Viu Web site
 
 ```pwsh
-dotnet new install ./_out/packages/Assimalign.Cohesion.Viu.Templates.10.0.0-beta.5.nupkg
+dotnet new install ./_out/packages/Assimalign.Cohesion.Viu.Templates.10.0.0-preview.1.nupkg
 dotnet new viu-cohesion-web --name Acme.Docs --assimalignRoot C:/Source/repos/assimalign
 cd Acme.Docs
 dotnet build

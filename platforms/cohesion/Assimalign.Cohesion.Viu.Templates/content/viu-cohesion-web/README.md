@@ -6,8 +6,8 @@ composes Web through the Local or Kubernetes gateway. All project SDKs are pinne
 
 ## Local packages
 
-This template tracks Cohesion `10.0.1-preview.3.local`, Viu `10.0.0-beta.12`, and the Viu hosting
-family `10.0.0-beta.5`. Populate the four local feeds named in `NuGet.config` before building.
+This template tracks Cohesion `10.0.0-preview.1.local`, Viu `10.0.0-preview.1`, and the Viu hosting
+family `10.0.0-preview.1`. Populate the four local feeds named in `NuGet.config` before building.
 When creating the template outside the sibling checkout directory, pass
 `--assimalignRoot C:/Source/repos/assimalign`. The `--cohesionVersion` parameter selects another
 complete SDK/framework/library identity. Keep SDK and library identities aligned.

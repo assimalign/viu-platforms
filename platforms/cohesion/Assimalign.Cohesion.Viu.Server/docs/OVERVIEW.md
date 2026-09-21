@@ -22,10 +22,10 @@ The public verbs are:
 - `UseViuServerRenderer` adapts Viu's host-neutral `ServerRenderAdaptor<IHttpContext>` to a
   Cohesion response stream.
 
-The library consumes `Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local`, so Cohesion's `App` and
+The library consumes `Assimalign.Cohesion.Sdk.Web/10.0.0-preview.1.local`, so Cohesion's `App` and
 `App.Web` shared frameworks provide the HTTP, file-system, hosting, and feature assemblies. Its
-ordinary NuGet dependencies are `Assimalign.Cohesion.Viu.Hosting` `10.0.0-beta.5` and
-`Assimalign.Viu.ServerRenderer` `10.0.0-beta.12`. The original
+ordinary NuGet dependencies are `Assimalign.Cohesion.Viu.Hosting` `10.0.0-preview.1` and
+`Assimalign.Viu.ServerRenderer` `10.0.0-preview.1`. The original
 pipeline-only `UseViuApplication(Action<ViuApplicationOptions>?)` remains available for custom
 pipeline implementations; on a built Cohesion application, omitting the callback uses the
 configuration previously registered by `AddViuApplication`.
@@ -34,9 +34,9 @@ The package's framework references are name-only NuGet metadata, so a direct pac
 also use Cohesion's SDK to supply the preview.3.local targeting/runtime-pack mapping:
 
 ```xml
-<Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local">
+<Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.0-preview.1.local">
   <ItemGroup>
-    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-beta.5" />
+    <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-preview.1" />
   </ItemGroup>
 </Project>
 ```
@@ -46,8 +46,8 @@ Pin both SDKs because `Sdk.Web` chains the base SDK through an unversioned impor
 ```json
 {
   "msbuild-sdks": {
-    "Assimalign.Cohesion.Sdk": "10.0.1-preview.3.local",
-    "Assimalign.Cohesion.Sdk.Web": "10.0.1-preview.3.local"
+    "Assimalign.Cohesion.Sdk": "10.0.0-preview.1.local",
+    "Assimalign.Cohesion.Sdk.Web": "10.0.0-preview.1.local"
   }
 }
 ```
@@ -214,7 +214,7 @@ the host to buffer that region or perform a render prepass.
 
 ## Web resource and client bundling
 
-Version `10.0.0-beta.5` supports Cohesion `10.0.1-preview.3.local` Web resources. On the executable,
+Version `10.0.0-preview.1` supports Cohesion `10.0.0-preview.1.local` Web resources. On the executable,
 set `ViuClientProject` to the browser csproj and call
 `builder.AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` before building the host.
 Package `buildTransitive` assets establish build order, write the evaluated client output path to

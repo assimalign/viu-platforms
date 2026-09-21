@@ -1,7 +1,7 @@
 # Assimalign.Cohesion.Viu.Markdown
 
-Markdown content for Viu applications on Cohesion. Version `10.0.0-beta.5` composes the published
-Cohesion Content.Markdown `10.0.1-preview.3.local` and Viu `10.0.0-beta.12` packages. The runtime targets
+Markdown content for Viu applications on Cohesion. Version `10.0.0-preview.1` composes the published
+Cohesion Content.Markdown `10.0.0-preview.1.local` and Viu `10.0.0-preview.1` packages. The runtime targets
 `net10.0`, enables trimming/AOT analysis, and contains no browser, Cohesion Web, Server, or shared
 framework reference. Applications must enable preview features, matching the Cohesion hosting
 packages' preview-annotated surface.
@@ -16,7 +16,7 @@ packages' preview-annotated surface.
   <ViuMarkdownRouteBase>/</ViuMarkdownRouteBase>
 </PropertyGroup>
 <ItemGroup>
-  <PackageReference Include="Assimalign.Cohesion.Viu.Markdown" Version="10.0.0-beta.5" />
+  <PackageReference Include="Assimalign.Cohesion.Viu.Markdown" Version="10.0.0-preview.1" />
   <Content Include="$(ViuMarkdownContentRoot)\**\*.md"
            Link="wwwroot\docs\%(RecursiveDir)%(Filename)%(Extension)" />
 </ItemGroup>
@@ -135,6 +135,6 @@ for the server-rendering boundary and known upstream seams.
 
 ## Cohesion preview.3 compatibility
 
-Version `10.0.0-beta.5` uses Cohesion `10.0.1-preview.3.local` in the local loop. The package target
+Version `10.0.0-preview.1` uses Cohesion `10.0.0-preview.1.local` in the local loop. The package target
 normalizes `ViuMarkdownContentRoot` with `MSBuild.NormalizePath`, which works in both dotnet MSBuild
 and Visual Studio's .NET Framework MSBuild. Catalog and runtime rendering behavior are unchanged.

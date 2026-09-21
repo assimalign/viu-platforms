@@ -2,7 +2,7 @@
 
 ## Hosting boundary
 
-The server uses `Assimalign.Cohesion.Sdk.Web/10.0.1-preview.3.local` and the App/App.Web shared frameworks.
+The server uses `Assimalign.Cohesion.Sdk.Web/10.0.0-preview.1.local` and the App/App.Web shared frameworks.
 `WebApplication.CreateBuilder()` is the composition root: `AddViuApplication` registers the bridge,
 `builder.Server.UseServer(...UseHttp1...)` configures every resolved URL, and the built application
 installs the registered middleware through `UseViuApplication`.

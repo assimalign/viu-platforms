@@ -2,10 +2,10 @@
   <PropertyGroup>
     <_CohesionSiblingFeed>$(ViuPlatformsRepositoryDirectory)..\cohesion\_out\packages</_CohesionSiblingFeed>
     <RestoreAdditionalProjectSources Condition="Exists('$(_CohesionSiblingFeed)')">$(RestoreAdditionalProjectSources);$(_CohesionSiblingFeed)</RestoreAdditionalProjectSources>
-    <CohesionSiblingPackageVersion Condition="Exists('$(_CohesionSiblingFeed)') and '$(CohesionSiblingPackageVersion)' == ''">10.0.1-preview.3.local</CohesionSiblingPackageVersion>
-    <CohesionVersion>[10.0.1-preview.3, )</CohesionVersion>
+    <CohesionSiblingPackageVersion Condition="Exists('$(_CohesionSiblingFeed)') and '$(CohesionSiblingPackageVersion)' == ''">10.0.0-preview.1.local</CohesionSiblingPackageVersion>
+    <CohesionVersion>[10.0.0-preview.1, )</CohesionVersion>
     <CohesionVersion Condition="Exists('$(_CohesionSiblingFeed)') and '$(CohesionSiblingPackageVersion)' != ''">[$(CohesionSiblingPackageVersion)]</CohesionVersion>
-    <ViuVersion>10.0.0-beta.12</ViuVersion>
+    <ViuVersion>10.0.0-preview.1</ViuVersion>
   </PropertyGroup>
 
   <ItemGroup>
