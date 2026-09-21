@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+
+using Assimalign.Cohesion.Hosting.Resources;
 
 namespace Assimalign.Cohesion.Viu.Server;
 
@@ -18,8 +21,17 @@ public sealed class ViuApplicationOptions
 
     /// <summary>Selects the published physical root, or the client build output and its asset manifests.</summary>
     /// <param name="clientAssemblyName">The client assembly name declared by the ViuClientProject project.</param>
-    /// <exception cref="InvalidOperationException">The build output option is absent and no published index exists.</exception>
-    /// <remarks>The Server build targets write the assembly-specific output directory into the Web runtime configuration.</remarks>
+    /// <exception cref="InvalidOperationException">
+    /// No published root exists and no <c>viu-client.json</c> document for the client exists in the
+    /// ambient resource content root or beside the executable.
+    /// </exception>
+    /// <remarks>
+    /// The Server build targets write <c>viu-client.json</c>, naming the client and its build output
+    /// directory, as copy-to-output content of the Web executable. Out of process it sits beside the
+    /// executable; hosted in a gateway process it is staged into the member's resource content root,
+    /// which the ambient <see cref="ResourceContext"/> names. Neither location depends on the
+    /// process-wide runtime configuration.
+    /// </remarks>
     public void UseClientOutput(string clientAssemblyName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(clientAssemblyName);
@@ -32,16 +44,34 @@ public sealed class ViuApplicationOptions
             return;
         }
 
-        string key = $"Viu.Client.{clientAssemblyName}.OutputPath";
-        string? output = AppContext.GetData(key) as string;
-        if (string.IsNullOrWhiteSpace(output))
+        foreach (string directory in ClientDocumentDirectories())
         {
-            throw new InvalidOperationException(
-                $"The runtime option '{key}' is missing. Set ViuClientProject on the Web executable and build it, or publish its wwwroot.");
+            if (!ViuClientDocument.TryRead(directory, clientAssemblyName, out string? output))
+            {
+                continue;
+            }
+            ContentRootPath = Path.Combine(output, "wwwroot");
+            RuntimeManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.runtime.json");
+            EndpointsManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.endpoints.json");
+            return;
         }
-        ContentRootPath = Path.Combine(output, "wwwroot");
-        RuntimeManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.runtime.json");
-        EndpointsManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.endpoints.json");
+
+        throw new InvalidOperationException(
+            $"No '{ViuClientDocument.FileName}' document for client '{clientAssemblyName}' exists in the resource content root or beside the executable. Set ViuClientProject on the Web executable and build it, or publish its wwwroot.");
+    }
+
+    private static IEnumerable<string> ClientDocumentDirectories()
+    {
+        string contentRoot = ResourceRuntime.Current.ContentRootPath;
+        yield return contentRoot;
+        string baseDirectory = AppContext.BaseDirectory;
+        if (!string.Equals(
+                Path.TrimEndingDirectorySeparator(Path.GetFullPath(contentRoot)),
+                Path.TrimEndingDirectorySeparator(Path.GetFullPath(baseDirectory)),
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        {
+            yield return baseDirectory;
+        }
     }
 
     /// <summary>

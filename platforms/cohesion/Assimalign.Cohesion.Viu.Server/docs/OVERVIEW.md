@@ -217,9 +217,10 @@ the host to buffer that region or perform a render prepass.
 Version `10.0.0-beta.5` supports Cohesion `10.0.1-preview.3.local` Web resources. On the executable,
 set `ViuClientProject` to the browser csproj and call
 `builder.AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` before building the host.
-Package `buildTransitive` assets establish build order, record the evaluated client output path,
-publish the client in Release with its own settings, and bundle its complete `wwwroot` into Web's
-publish directory. Published hosting selects the physical root without manifests, including
+Package `buildTransitive` assets establish build order, write the evaluated client output path to
+a `viu-client.json` content file that travels beside the executable and into an in-process
+member's resource content root, publish the client in Release with its own settings, and bundle
+its complete `wwwroot` into Web's publish directory. Published hosting selects the physical root without manifests, including
 fingerprinted assets, MIME types, and negotiated `.br`/`.gz` siblings.
 
 Enabled Web manifests gain `web.viu.client`, `web.viu.spa-fallback=true`, and `web.viu.base-path=/`.

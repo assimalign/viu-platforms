@@ -206,7 +206,9 @@ The template creates Client, Web and AppHost projects. Web is an enabled Web res
 public HTTP endpoint. Set `ViuClientProject` on a Web executable referencing Server; the package
 establishes a non-compiling client project reference and queries the client's evaluated target
 path. `AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` selects build manifests during
-development and a physical `wwwroot` beside the executable after publication. The bare health
+development, through the `viu-client.json` document the build stages beside the executable and in
+an in-process member's resource content root, and a physical `wwwroot` beside the executable after
+publication. The bare health
 probes and the resource control-plane path (`ViuApplicationOptions.ControlPlanePath`, default
 `/cohesion/v1`, plus its subtree) always pass through Viu's static and server-rendering fallbacks;
 every other route, including an application route such as `/cohesion`, belongs to the browser

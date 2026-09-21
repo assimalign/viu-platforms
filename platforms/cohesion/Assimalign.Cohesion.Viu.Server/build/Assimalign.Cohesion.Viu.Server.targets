@@ -8,10 +8,24 @@
                       GlobalPropertiesToRemove="$(_ViuClientRemoveProperties)" />
   </ItemGroup>
 
+  <!-- viu-client.json names the client and its build output directory. As copy-to-output content
+       it sits beside the Web executable out of process and is staged into the member's resource
+       content root when a gateway hosts the Web resource in its own process, so UseClientOutput
+       never depends on the process-wide runtime configuration. It is never published: a published
+       Web resource serves the physical wwwroot that ViuPublishClient bundles. -->
+  <PropertyGroup Condition="'$(ViuClientProject)' != ''">
+    <_ViuClientDocumentPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client.json'))</_ViuClientDocumentPath>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ViuClientProject)' != ''">
+    <Content Include="$(_ViuClientDocumentPath)" Link="viu-client.json" Visible="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
   <!-- GetTargetPath returns the client's evaluated TargetPath, including its own
-       AssemblyName, TargetDir, framework and output-path customizations. -->
+       AssemblyName, TargetDir, framework and output-path customizations. The target runs
+       before AssignTargetPaths so the document exists before content is copied. -->
   <Target Name="ViuResolveClientOutput"
-          BeforeTargets="GenerateBuildRuntimeConfigurationFiles;CohesionCreateResourceManifest"
+          BeforeTargets="AssignTargetPaths;GenerateBuildRuntimeConfigurationFiles;CohesionCreateResourceManifest"
           Condition="'$(ViuClientProject)' != ''">
     <Error Condition="!Exists('$(ViuClientProject)')" Text="ViuClientProject '$(ViuClientProject)' does not exist." />
     <MSBuild Projects="$(ViuClientProject)" Targets="GetTargetPath"
@@ -22,9 +36,12 @@
     <PropertyGroup>
       <_ViuClientAssembly>@(_ViuClientTarget->'%(Filename)')</_ViuClientAssembly>
       <_ViuClientOutput>@(_ViuClientTarget->'%(RootDir)%(Directory)')</_ViuClientOutput>
+      <_ViuClientDocument>{"client":"$(_ViuClientAssembly)","outputPath":"$(_ViuClientOutput.Replace('\', '\\'))"}</_ViuClientDocument>
     </PropertyGroup>
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_ViuClientDocumentPath)'))" />
+    <WriteLinesToFile File="$(_ViuClientDocumentPath)" Lines="$(_ViuClientDocument)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup>
-      <RuntimeHostConfigurationOption Include="Viu.Client.$(_ViuClientAssembly).OutputPath" Value="$(_ViuClientOutput)" />
+      <FileWrites Include="$(_ViuClientDocumentPath)" />
     </ItemGroup>
     <ItemGroup Condition="'$(CohesionApplicationModel)' == 'enabled'">
       <CohesionResourceProperty Include="web.viu.client" Value="$(_ViuClientAssembly)" />

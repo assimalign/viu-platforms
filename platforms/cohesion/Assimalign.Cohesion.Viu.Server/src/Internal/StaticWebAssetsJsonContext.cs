@@ -7,4 +7,5 @@ namespace Assimalign.Cohesion.Viu.Server;
     PropertyNameCaseInsensitive = false)]
 [JsonSerializable(typeof(StaticWebAssetsRuntimeManifest))]
 [JsonSerializable(typeof(StaticWebAssetsEndpointsManifest))]
+[JsonSerializable(typeof(ViuClientDocument))]
 internal sealed partial class StaticWebAssetsJsonContext : JsonSerializerContext;

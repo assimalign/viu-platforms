@@ -177,12 +177,19 @@ and the supplied root factory keep application activation explicit.
 is set. The non-compiling project reference removes Web RID, self-contained, AOT, trimming and
 ready-to-run properties. `ViuResolveClientOutput` calls the public MSBuild `GetTargetPath` target;
 its returned assembly path supplies the client's own target directory and assembly name.
-A runtime configuration option named `Viu.Client.<assembly>.OutputPath` carries that directory.
-`ViuPublishClient` restores and publishes the browser in Release, then registers all published
-`wwwroot` files as `ResolvedFileToPublish`, so SDK container payloads and image fingerprints include
-them. It never packs or changes a sibling project.
+The target writes both into `viu-client.json` in the Web project's intermediate directory and
+declares that file as copy-to-output content (`CopyToPublishDirectory=Never`), so it sits beside
+the executable out of process and, because Cohesion's gateway SDK stages a member's declared
+copy-to-output content into the member's resource content root, inside that content root when a
+gateway hosts the Web resource in its own process. A runtime configuration option was the earlier
+carrier and was retired: `AppContext` data is process-wide, so an in-process member could never
+see its own value. `ViuPublishClient` restores and publishes the browser in Release, then
+registers all published `wwwroot` files as `ResolvedFileToPublish`, so SDK container payloads and
+image fingerprints include them. It never packs or changes a sibling project.
 
-`UseClientOutput` first checks `AppContext.BaseDirectory/wwwroot/index.html`. A published root
+`UseClientOutput` first checks `AppContext.BaseDirectory/wwwroot/index.html`, then reads
+`viu-client.json` from the ambient `ResourceContext.ContentRootPath` and, when that differs, from
+`AppContext.BaseDirectory`; a document naming a different client is ignored. A published root
 uses no asset manifest; a build root uses both runtime and endpoints manifests. Physical files
 retain their logical names for MIME lookup while compression selects a sibling and adds `Vary`.
 Probe paths and the configured control-plane path (`/cohesion/v1` by default — never the whole
