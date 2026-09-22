@@ -1,10 +1,12 @@
 <Project>
-  <!-- Private="false" keeps the client's content items from flowing transitively into the Web
-       executable's build output: a partial wwwroot beside the executable would make
+  <!-- A ViuClientReference item names the browser client project. It becomes a non-compiling
+       project reference: build order and the client's asset manifests, never its output
+       assembly. Private="false" keeps the client's content items from flowing transitively into
+       the Web executable's build output: a partial wwwroot beside the executable would make
        UseClientOutput select the physical layout and miss the framework assets that only the
        client's own build output or ViuPublishClient provide. -->
-  <ItemGroup Condition="'$(ViuClientProject)' != ''">
-    <ProjectReference Include="$(ViuClientProject)" ReferenceOutputAssembly="false" Private="false"
+  <ItemGroup Condition="'@(ViuClientReference)' != ''">
+    <ProjectReference Include="@(ViuClientReference)" ReferenceOutputAssembly="false" Private="false"
                       GlobalPropertiesToRemove="$(_ViuClientRemoveProperties)" />
   </ItemGroup>
 
@@ -12,27 +14,35 @@
        it sits beside the Web executable out of process and is staged into the member's resource
        content root when a gateway hosts the Web resource in its own process, so UseClientOutput
        never depends on the process-wide runtime configuration. It is never published: a published
-       Web resource serves the physical wwwroot that ViuPublishClient bundles. -->
-  <PropertyGroup Condition="'$(ViuClientProject)' != ''">
+       Web resource serves the physical wwwroot that ViuPublishClient bundles. The document is a
+       build output, so ViuResolveClientOutput adds its Content item; no obj path is a project item
+       at evaluation time. -->
+  <PropertyGroup>
     <_ViuClientDocumentPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client.json'))</_ViuClientDocumentPath>
+    <_ViuClientPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client-publish'))</_ViuClientPublishDir>
   </PropertyGroup>
-  <ItemGroup Condition="'$(ViuClientProject)' != ''">
-    <Content Include="$(_ViuClientDocumentPath)" Link="viu-client.json" Visible="false"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
-  </ItemGroup>
+
+  <Target Name="ViuValidateClientReference" BeforeTargets="PrepareForBuild;CoreCompile">
+    <Error Condition="'$(ViuClientProject)' != ''"
+           Text="ViuClientProject is not supported. Declare the browser client with a ViuClientReference item: &lt;ViuClientReference Include=&quot;$(ViuClientProject)&quot; /&gt;." />
+    <Error Condition="'@(ViuClientReference->Count())' > '1'"
+           Text="A Web executable declares exactly one ViuClientReference; found @(ViuClientReference->Count()): @(ViuClientReference, ', ')." />
+    <Error Condition="'@(ViuClientReference)' != '' and !Exists('%(ViuClientReference.FullPath)')"
+           Text="ViuClientReference '%(ViuClientReference.Identity)' does not exist." />
+  </Target>
 
   <!-- GetTargetPath returns the client's evaluated TargetPath, including its own
        AssemblyName, TargetDir, framework and output-path customizations. The target runs
        before AssignTargetPaths so the document exists before content is copied. -->
   <Target Name="ViuResolveClientOutput"
           BeforeTargets="AssignTargetPaths;GenerateBuildRuntimeConfigurationFiles;CohesionCreateResourceManifest"
-          Condition="'$(ViuClientProject)' != ''">
-    <Error Condition="!Exists('$(ViuClientProject)')" Text="ViuClientProject '$(ViuClientProject)' does not exist." />
-    <MSBuild Projects="$(ViuClientProject)" Targets="GetTargetPath"
+          DependsOnTargets="ViuValidateClientReference"
+          Condition="'@(ViuClientReference)' != ''">
+    <MSBuild Projects="@(ViuClientReference)" Targets="GetTargetPath"
              Properties="Configuration=$(Configuration)" RemoveProperties="$(_ViuClientRemoveProperties)">
       <Output TaskParameter="TargetOutputs" ItemName="_ViuClientTarget" />
     </MSBuild>
-    <Error Condition="'@(_ViuClientTarget->Count())' != '1'" Text="ViuClientProject must produce exactly one browser target assembly." />
+    <Error Condition="'@(_ViuClientTarget->Count())' != '1'" Text="ViuClientReference must produce exactly one browser target assembly." />
     <PropertyGroup>
       <_ViuClientAssembly>@(_ViuClientTarget->'%(Filename)')</_ViuClientAssembly>
       <_ViuClientOutput>@(_ViuClientTarget->'%(RootDir)%(Directory)')</_ViuClientOutput>
@@ -41,6 +51,8 @@
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_ViuClientDocumentPath)'))" />
     <WriteLinesToFile File="$(_ViuClientDocumentPath)" Lines="$(_ViuClientDocument)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup>
+      <Content Include="$(_ViuClientDocumentPath)" Link="viu-client.json"
+               CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
       <FileWrites Include="$(_ViuClientDocumentPath)" />
     </ItemGroup>
     <ItemGroup Condition="'$(CohesionApplicationModel)' == 'enabled'">
@@ -50,20 +62,17 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="ViuPublishClient" BeforeTargets="ComputeFilesToPublish" Condition="'$(ViuClientProject)' != ''">
-    <PropertyGroup>
-      <_ViuClientPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client-publish'))</_ViuClientPublishDir>
-    </PropertyGroup>
+  <Target Name="ViuPublishClient" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="ViuValidateClientReference" Condition="'@(ViuClientReference)' != ''">
     <!-- The browser SDK supplies its own runtime and trimming settings. Keep the
          explicitly supplied staging PublishDir: RemoveProperties also removes
          properties supplied on this MSBuild task, not just inherited globals. -->
-    <MSBuild Projects="$(ViuClientProject)" Targets="Restore"
+    <MSBuild Projects="@(ViuClientReference)" Targets="Restore"
              Properties="Configuration=Release;PublishDir=$(_ViuClientPublishDir)"
              RemoveProperties="$(_ViuClientPublishRemoveProperties)" />
-    <MSBuild Projects="$(ViuClientProject)" Targets="Publish"
+    <MSBuild Projects="@(ViuClientReference)" Targets="Publish"
              Properties="Configuration=Release;PublishDir=$(_ViuClientPublishDir)"
              RemoveProperties="$(_ViuClientPublishRemoveProperties)" />
-    <Error Condition="!Exists('$(_ViuClientPublishDir)wwwroot/index.html')" Text="ViuClientProject must publish wwwroot/index.html." />
+    <Error Condition="!Exists('$(_ViuClientPublishDir)wwwroot/index.html')" Text="ViuClientReference must publish wwwroot/index.html." />
     <ItemGroup>
       <_ViuPublishedClientAsset Include="$(_ViuClientPublishDir)wwwroot/**/*" />
       <ResolvedFileToPublish Include="@(_ViuPublishedClientAsset)">
@@ -72,5 +81,10 @@
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
     </ItemGroup>
+  </Target>
+
+  <!-- The staged client publication is not a file write of this project; Clean removes it. -->
+  <Target Name="ViuCleanClientPublish" AfterTargets="CoreClean" Condition="Exists('$(_ViuClientPublishDir)')">
+    <RemoveDir Directories="$(_ViuClientPublishDir)" />
   </Target>
 </Project>

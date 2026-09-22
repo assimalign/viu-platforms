@@ -215,7 +215,7 @@ the host to buffer that region or perform a render prepass.
 ## Web resource and client bundling
 
 Version `10.0.0-preview.1` supports Cohesion `10.0.0-preview.1.local` Web resources. On the executable,
-set `ViuClientProject` to the browser csproj and call
+declare the browser csproj with a `ViuClientReference` item and call
 `builder.AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` before building the host.
 Package `buildTransitive` assets establish build order, write the evaluated client output path to
 a `viu-client.json` content file that travels beside the executable and into an in-process

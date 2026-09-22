@@ -203,9 +203,9 @@ dotnet run --project Acme.Docs.AppHost -- --gateway local --mode describe
 ```
 
 The template creates Client, Web and AppHost projects. Web is an enabled Web resource with a
-public HTTP endpoint. Set `ViuClientProject` on a Web executable referencing Server; the package
-establishes a non-compiling client project reference and queries the client's evaluated target
-path. `AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` selects build manifests during
+public HTTP endpoint. Declare a `ViuClientReference` item on a Web executable referencing Server;
+the package turns it into a non-compiling client project reference and queries the client's
+evaluated target path. `AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` selects build manifests during
 development, through the `viu-client.json` document the build stages beside the executable and in
 an in-process member's resource content root, and a physical `wwwroot` beside the executable after
 publication. The bare health

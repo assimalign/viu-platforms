@@ -3,15 +3,11 @@
     <CohesionApplicationModel>enabled</CohesionApplicationModel>
     <CohesionApplicationName>__APPLICATION_NAME__</CohesionApplicationName>
     <CohesionResourceName>__APPLICATION_NAME__-web</CohesionResourceName>
-    <ViuClientProject>../CohesionViuSite.Client/CohesionViuSite.Client.csproj</ViuClientProject>
-    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
-    <!-- App and App.Web are explicit. Avoid downloading every other registered area runtime pack. -->
-    <DisableTransitiveFrameworkReferenceDownloads>true</DisableTransitiveFrameworkReferenceDownloads>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-preview.1" />
+    <ViuClientReference Include="../CohesionViuSite.Client/CohesionViuSite.Client.csproj" />
     <CohesionEndpoint Update="http" Public="true" DevPort="8080" />
   </ItemGroup>
 </Project>

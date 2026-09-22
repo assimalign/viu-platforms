@@ -25,7 +25,7 @@ flowchart LR
 and creates Web options containing its replica and storage overrides. Forwarding the inherited
 storage setting preserves Web's rejection of stateful storage rather than silently discarding it.
 `ValidateClient` is consumed only at composition time. Missing and malformed properties produce
-an exception naming the property and the `ViuClientProject` build input.
+an exception naming the property and the `ViuClientReference` build input.
 
 `AddViuWeb` calls `AddWeb` once and wraps its descriptor. The wrapper forwards resource identity,
 plan, commands and dependencies, retaining its typed return from `DependsOn`. It snapshots the

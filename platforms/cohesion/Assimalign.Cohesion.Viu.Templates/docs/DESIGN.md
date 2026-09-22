@@ -52,13 +52,15 @@ flowchart LR
 ```
 
 The generated client loads configuration before components start. Web uses its normal control
-plane and `UseClientOutput`. AppHost deliberately retains generated `AddAllResources()` and its
-current `AddWeb` behavior; mapping the Viu overlay is a Cohesion SDK follow-up. The old
-`viu-cohesion` development-server template stays available on the same beta.5 family version.
+plane and `UseClientOutput`. AppHost composes the site with the explicit `AddViuWeb(Manifests.<Name>)`
+verb (the template derives the member name from the project name); mapping the Viu overlay onto
+the generated verb is a Cohesion SDK follow-up. The old `viu-cohesion` development-server template
+stays available on the same family version.
 
-Web sets `DisableTransitiveFrameworkReferenceDownloads=true`: the SDK explicitly includes App
-and App.Web, so publishing the Web resource need not download unrelated Cohesion area runtime
-packs. Its HTTP endpoint has development port 8080 so standalone `dotnet run` also binds a listener.
+The project files carry no runtime posture: the Cohesion SDK defaults `SelfContained`, the host
+`RuntimeIdentifier`, and `DisableTransitiveFrameworkReferenceDownloads=true` for enabled resources,
+so publishing the Web resource need not download unrelated Cohesion area runtime packs. Its HTTP
+endpoint has development port 8080 so standalone `dotnet run` also binds a listener.
 Ordinary ARM64 publication includes the client. The current Cohesion image resolver still accepts
 only Linux x64 RIDs and requires NativeAOT for Release images; ARM64 OCI publication is an upstream
 follow-up, not a change of the site's Web application model.

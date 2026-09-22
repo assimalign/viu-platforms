@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization.Metadata;
 
 using Assimalign.Cohesion.ApplicationModel;
-using Assimalign.Cohesion.Web.ApplicationModel;
 
-namespace Assimalign.Cohesion.Viu.ApplicationModel;
+namespace Assimalign.Cohesion.ApplicationModel;
 
 internal sealed class ViuWebResourceDescriptor : IViuWebResourceDescriptor
 {

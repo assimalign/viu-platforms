@@ -25,7 +25,7 @@ warn and retain an empty configuration. The supplied `HttpClient` belongs to Pro
 
 ## Publish and containers
 
-`ViuClientProject` establishes build order and supplies build asset manifests. Publishing Web
+A `ViuClientReference` item establishes build order and supplies build asset manifests. Publishing Web
 publishes the client in Release using its own trimming settings, then bundles its entire physical
 `wwwroot`, including framework assets and compressed siblings. Published hosting needs no manifests.
 
@@ -44,7 +44,7 @@ Kubernetes render may require published image metadata and gateway configuration
 ## Application model
 
 Web remains `Kind=Web` and declares `Assimalign.Cohesion.Web.ApplicationModel`. Its manifest carries
-`web.viu.client`, `web.viu.spa-fallback`, and `web.viu.base-path`. AppHost's generated
-`AddAllResources()` currently calls `AddWeb`. For Viu validation, compose manifests explicitly with
-`AddViuWeb`; it produces the same Web plan. Automatic Viu verb selection requires a Cohesion SDK
+`web.viu.client`, `web.viu.spa-fallback`, and `web.viu.base-path`. AppHost composes it with
+`AddViuWeb(Manifests.<Name>)`, which validates those facts and produces the same Web plan as the
+generated `Add<Name>()` verb. Automatic Viu verb selection requires a Cohesion SDK
 `CohesionGatewayResourceKind` mapping follow-up. Do not change Web's resource kind or application model.

@@ -4,8 +4,6 @@
     <CohesionResourceName>__APPLICATION_NAME__-apphost</CohesionResourceName>
     <CohesionGateways>Local;Kubernetes</CohesionGateways>
     <CohesionPlatformsVersion>10.0.0-preview.1</CohesionPlatformsVersion>
-    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
   </PropertyGroup>
   <ItemGroup>

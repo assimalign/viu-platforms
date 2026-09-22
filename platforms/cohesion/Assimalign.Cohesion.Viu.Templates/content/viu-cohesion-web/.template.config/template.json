@@ -22,6 +22,11 @@
       "type": "generated", "generator": "regex",
       "parameters": { "source": "nameLower", "steps": [{ "regex": "[^a-z0-9]+", "replacement": "-" }] },
       "replaces": "__APPLICATION_NAME__"
+    },
+    "member": {
+      "type": "generated", "generator": "regex",
+      "parameters": { "source": "name", "steps": [{ "regex": "[^A-Za-z0-9]+", "replacement": "" }] },
+      "replaces": "__MEMBER_PREFIX__"
     }
   },
   "primaryOutputs": [{ "path": "CohesionViuSite.slnx" }]

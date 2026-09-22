@@ -1,9 +1,8 @@
 using System;
 
 using Assimalign.Cohesion.ApplicationModel;
-using Assimalign.Cohesion.Web.ApplicationModel;
 
-namespace Assimalign.Cohesion.Viu.ApplicationModel;
+namespace Assimalign.Cohesion.ApplicationModel;
 
 /// <summary>Composes Viu sites using the standard Web resource planner.</summary>
 public static class ViuWebResourceExtensions
@@ -36,7 +35,7 @@ public static class ViuWebResourceExtensions
             ArgumentNullException.ThrowIfNull(declaration);
             ArgumentNullException.ThrowIfNull(configure);
             ResourceManifest manifest = declaration.Manifest
-                ?? throw new ArgumentException("A remote Viu Web reference requires a Web manifest produced with ViuClientProject.", nameof(declaration));
+                ?? throw new ArgumentException("A remote Viu Web reference requires a Web manifest produced by a Web executable with a ViuClientReference.", nameof(declaration));
             Validate(manifest, true);
             return new ViuWebResourceDescriptor(builder.RemoteReferenceWeb(declaration, configure), manifest);
         }
@@ -47,7 +46,7 @@ public static class ViuWebResourceExtensions
         ArgumentNullException.ThrowIfNull(manifest);
         if (!string.Equals(manifest.Kind, "Web", StringComparison.Ordinal))
         {
-            throw new ArgumentException("A Viu site requires Kind 'Web'. Use Assimalign.Cohesion.Sdk.Web with ViuClientProject.", nameof(manifest));
+            throw new ArgumentException("A Viu site requires Kind 'Web'. Use Assimalign.Cohesion.Sdk.Web with a ViuClientReference.", nameof(manifest));
         }
         if (validateClient) { ViuWebManifestProperties.Validate(manifest); }
     }

@@ -173,8 +173,8 @@ and the supplied root factory keep application activation explicit.
 
 ## Resource-aware publishing and client document
 
-`buildTransitive/Assimalign.Cohesion.Viu.Server.props|targets` activate only when `ViuClientProject`
-is set. The non-compiling project reference removes Web RID, self-contained, AOT, trimming and
+`buildTransitive/Assimalign.Cohesion.Viu.Server.props|targets` activate only when a `ViuClientReference` item
+is declared. The non-compiling project reference removes Web RID, self-contained, AOT, trimming and
 ready-to-run properties. `ViuResolveClientOutput` calls the public MSBuild `GetTargetPath` target;
 its returned assembly path supplies the client's own target directory and assembly name.
 The target writes both into `viu-client.json` in the Web project's intermediate directory and

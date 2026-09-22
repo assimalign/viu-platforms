@@ -2,7 +2,7 @@ using System;
 
 using Assimalign.Cohesion.ApplicationModel;
 
-namespace Assimalign.Cohesion.Viu.ApplicationModel;
+namespace Assimalign.Cohesion.ApplicationModel;
 
 /// <summary>Names and reads the Web manifest properties emitted for a Viu client project.</summary>
 public static class ViuWebManifestProperties
@@ -49,5 +49,5 @@ public static class ViuWebManifestProperties
     }
 
     private static void ThrowInvalid(string property) => throw new ArgumentException(
-        $"Viu Web manifest property '{property}' is missing or invalid. Set ViuClientProject on the Web executable and rebuild its resource.json.", "manifest");
+        $"Viu Web manifest property '{property}' is missing or invalid. Declare the browser client with a ViuClientReference item on the Web executable and rebuild its resource.json.", "manifest");
 }

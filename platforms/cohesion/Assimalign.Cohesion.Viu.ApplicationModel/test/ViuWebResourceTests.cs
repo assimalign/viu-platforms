@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Assimalign.Cohesion.ApplicationModel;
-using Assimalign.Cohesion.Web.ApplicationModel;
 
 using Shouldly;
 using Xunit;
@@ -28,7 +27,7 @@ public sealed class ViuWebResourceTests
         ArgumentException exception = Should.Throw<ArgumentException>(() => Application.CreateBuilder()
             .AddViuWeb(source with { Properties = properties }));
         exception.Message.ShouldContain(key);
-        exception.Message.ShouldContain("ViuClientProject");
+        exception.Message.ShouldContain("ViuClientReference");
     }
 
     [Theory]

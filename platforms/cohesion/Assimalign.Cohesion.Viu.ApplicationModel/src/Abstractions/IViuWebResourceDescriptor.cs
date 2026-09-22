@@ -1,7 +1,6 @@
 using Assimalign.Cohesion.ApplicationModel;
-using Assimalign.Cohesion.Web.ApplicationModel;
 
-namespace Assimalign.Cohesion.Viu.ApplicationModel;
+namespace Assimalign.Cohesion.ApplicationModel;
 
 /// <summary>A typed Viu site descriptor that delegates planning and commands to Web.</summary>
 public interface IViuWebResourceDescriptor : IResourceCommandDescriptor

@@ -22,5 +22,5 @@ restore the SDK packages.
 Version `10.0.0-preview.1` adds `viu-cohesion-web`, producing Client, Web, AppHost and a solution.
 Pass `--assimalignRoot` when the output is outside the sibling-checkout directory. SDK and library
 Cohesion identities are aligned at `10.0.0-preview.1.local`; Viu stays at `10.0.0-preview.1`.
-Web references Server with `ViuClientProject`, and AppHost selects Local or Kubernetes. See the
+Web declares its client with a `ViuClientReference` item, and AppHost selects Local or Kubernetes. See the
 [generated README](../content/viu-cohesion-web/README.md) for build, run and container commands.

@@ -1,6 +1,6 @@
 using Assimalign.Cohesion.ApplicationModel;
 
-namespace Assimalign.Cohesion.Viu.ApplicationModel;
+namespace Assimalign.Cohesion.ApplicationModel;
 
 /// <summary>Configures validation and the standard Web resource planning overrides.</summary>
 public sealed class ViuWebResourceOptions : ResourceOptions
