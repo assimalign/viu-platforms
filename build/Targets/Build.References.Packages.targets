@@ -29,6 +29,7 @@
     <PackageReference Update="Assimalign.Cohesion.Web" Version="$(CohesionVersion)" />
     <PackageReference Update="Assimalign.Cohesion.Web.Server" Version="$(CohesionVersion)" />
     <PackageReference Update="Assimalign.Viu.Browser" Version="$(ViuVersion)" />
+    <PackageReference Update="Assimalign.Viu.Browser.Router" Version="$(ViuVersion)" />
     <PackageReference Update="Assimalign.Viu.Components" Version="$(ViuVersion)" />
     <PackageReference Update="Assimalign.Viu.Core" Version="$(ViuVersion)" />
     <PackageReference Update="Assimalign.Viu.Reactivity" Version="$(ViuVersion)" />

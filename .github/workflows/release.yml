@@ -147,6 +147,7 @@ jobs:
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/src/Assimalign.Cohesion.Viu.Markdown.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj --configuration Release --no-build
+          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Routing/src/Assimalign.Cohesion.Viu.Routing.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj --configuration Release --no-build
           dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj --configuration Release --no-build
@@ -160,6 +161,7 @@ jobs:
             "Assimalign.Cohesion.Viu.Hosting.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.Markdown.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.Hosting.Browser.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
+            "Assimalign.Cohesion.Viu.Routing.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.Server.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.DevServer.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
             "Assimalign.Cohesion.Viu.Templates.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg")

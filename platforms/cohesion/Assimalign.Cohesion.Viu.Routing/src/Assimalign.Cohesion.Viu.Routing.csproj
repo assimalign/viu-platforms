@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkForLibraries)</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Dependency-injection routing registration for Cohesion-hosted Viu applications.</Description>
+    <PackageTags>Viu;Cohesion;Router;Routing;DependencyInjection;Browser;WebAssembly;WASM</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ViuPlatformProjectReference Include="Assimalign.Cohesion.Viu.Hosting" />
+    <ViuPlatformPackageReference Include="Assimalign.Viu.Browser.Router" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

@@ -14,6 +14,7 @@ $hostingProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimal
 $applicationModelProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/src/Assimalign.Cohesion.Viu.ApplicationModel.csproj'
 $markdownProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/src/Assimalign.Cohesion.Viu.Markdown.csproj'
 $browserHostingProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj'
+$routingProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Routing/src/Assimalign.Cohesion.Viu.Routing.csproj'
 $serverProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj'
 $developmentServerProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj'
 $templatesProjectPath = Join-Path $repositoryDirectory 'platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj'
@@ -27,6 +28,7 @@ try {
     dotnet pack $applicationModelProjectPath --configuration $Configuration --no-build
     dotnet pack $markdownProjectPath --configuration $Configuration --no-build
     dotnet pack $browserHostingProjectPath --configuration $Configuration --no-build
+    dotnet pack $routingProjectPath --configuration $Configuration --no-build
     dotnet pack $serverProjectPath --configuration $Configuration --no-build
     dotnet pack $developmentServerProjectPath --configuration $Configuration --no-build
     dotnet pack $templatesProjectPath --configuration $Configuration --no-build
