@@ -120,16 +120,22 @@ public sealed class ViuApplicationBuilderTests
     }
 
     [Fact]
-    public void BuildRejectsReflectionBasedTypeActivation()
+    public async Task BuildActivatesServicesRegisteredByImplementationType()
     {
+        var dependency = new ApplicationService("dependency");
         ViuApplicationBuilder builder = CreateConfiguredBuilder(new RecordingHostFactory());
-        builder.Services.Add(
-            ServiceDescriptor.Singleton<ActivationOnlyService, ActivationOnlyService>());
+        builder.Services.Add(ServiceDescriptor.Singleton(dependency));
+        builder.Services.AddSingleton<IActivatedService, ActivatedService>();
 
-        InvalidOperationException exception = Should.Throw<InvalidOperationException>(builder.Build);
+        ViuApplication application = builder.Build();
 
-        exception.Message.ShouldContain("does not permit type activation");
-        exception.Message.ShouldContain(typeof(ActivationOnlyService).ToString());
+        IActivatedService activated =
+            application.Context.Services.GetRequiredService<IActivatedService>();
+        activated.ShouldBeOfType<ActivatedService>().Dependency.ShouldBeSameAs(dependency);
+        application.Context.Services.GetRequiredService<IActivatedService>()
+            .ShouldBeSameAs(activated);
+
+        await ((IAsyncDisposable)application).DisposeAsync();
     }
 
     [Fact]
@@ -182,8 +188,18 @@ public sealed class ViuApplicationBuilderTests
 
     private sealed record ApplicationService(string Value);
 
-    private sealed class ActivationOnlyService
+    private interface IActivatedService
     {
+    }
+
+    private sealed class ActivatedService : IActivatedService
+    {
+        public ActivatedService(ApplicationService dependency)
+        {
+            Dependency = dependency;
+        }
+
+        public ApplicationService Dependency { get; }
     }
 
     private sealed class DisposableApplicationService : IDisposable

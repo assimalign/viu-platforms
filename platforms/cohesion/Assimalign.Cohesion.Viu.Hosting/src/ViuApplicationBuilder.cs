@@ -5,6 +5,8 @@ using Assimalign.Cohesion.Configuration;
 using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Cohesion.Hosting;
 using Assimalign.Viu;
+using Assimalign.Viu.Components;
+using Assimalign.Viu.State;
 
 namespace Assimalign.Cohesion.Viu.Hosting;
 
@@ -18,6 +20,7 @@ namespace Assimalign.Cohesion.Viu.Hosting;
 /// </remarks>
 public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
 {
+    private readonly ComponentFactory _defaultComponents = new();
     private IViuApplicationHostFactory? _hostFactory;
     private bool _isBuilt;
 
@@ -34,7 +37,10 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
         {
             Name = AppEnvironment.GetEnvironmentName(),
         };
-        ApplicationOptions = new ApplicationOptions();
+        ApplicationOptions = new ApplicationOptions
+        {
+            Components = _defaultComponents,
+        };
     }
 
     /// <summary>Gets the Cohesion service-provider builder owned by this composition.</summary>
@@ -47,6 +53,12 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
     public HostEnvironment Environment { get; }
 
     /// <summary>Gets the mutable Viu composition options that <see cref="Build"/> snapshots.</summary>
+    /// <remarks>
+    /// Component contributions registered in <see cref="Services"/> join the default component
+    /// factory; an explicitly assigned factory takes precedence over them. An unset state registry
+    /// or directive resolver is resolved from the built provider, and unset warning and error
+    /// handlers default to standard error.
+    /// </remarks>
     public ApplicationOptions ApplicationOptions { get; }
 
     /// <summary>Applies Viu composition settings.</summary>
@@ -76,8 +88,8 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
     /// <summary>Builds the configured Cohesion-hosted Viu application.</summary>
     /// <returns>The single application built by this builder.</returns>
     /// <exception cref="InvalidOperationException">
-    /// The builder was already built, no host factory was selected, or a service registration
-    /// requests reflection-based type activation.
+    /// The builder was already built, no host factory was selected, or two component
+    /// contributions register different components under the same reference.
     /// </exception>
     public ViuApplication Build()
     {
@@ -88,8 +100,9 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
             ?? throw new InvalidOperationException(
                 "Configure a Viu application host before building the application.");
 
+        ApplyDefaultDiagnostics();
         RegisterHostServices();
-        RejectTypeActivation();
+        RegisterApplicationServices();
 
         IServiceProvider serviceProvider = ((IServiceProviderBuilder)Services).Build();
         IApplication? runtimeApplication = null;
@@ -98,6 +111,9 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
             ApplicationOptions frozenOptions = ApplicationOptionsSnapshot.Create(
                 ApplicationOptions,
                 serviceProvider);
+            frozenOptions.Components = serviceProvider.GetRequiredService<IComponentFactory>();
+            frozenOptions.State ??= serviceProvider.GetService<IStateStoreRegistry>();
+            frozenOptions.Directives ??= serviceProvider.GetService<IDirectiveResolver>();
             runtimeApplication = hostFactory.CreateApplication(
                 ApplicationOptionsSnapshot.Create(frozenOptions));
             ArgumentNullException.ThrowIfNull(runtimeApplication);
@@ -141,6 +157,12 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
 
     IHost IHostBuilder.Build() => Build();
 
+    private void ApplyDefaultDiagnostics()
+    {
+        ApplicationOptions.WarnHandler ??= ViuApplicationDiagnostics.WriteWarning;
+        ApplicationOptions.ErrorHandler ??= ViuApplicationDiagnostics.WriteError;
+    }
+
     private void RegisterHostServices()
     {
         Services.Add(ServiceDescriptor.Singleton<IConfiguration>(Configuration));
@@ -149,17 +171,16 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
         Services.Add(ServiceDescriptor.Singleton<IHostEnvironment>(Environment));
     }
 
-    private void RejectTypeActivation()
+    private void RegisterApplicationServices()
     {
-        foreach (ServiceDescriptor descriptor in Services.Container)
-        {
-            if (descriptor.ImplementationType is not null)
-            {
-                throw new InvalidOperationException(
-                    $"The Viu hosting model does not permit type activation for service " +
-                    $"'{descriptor.ServiceType}'. Register an instance or explicit factory instead.");
-            }
-        }
+        // Captured here, after every ConfigureApplication call, so a later assignment on the
+        // mutable options object cannot change the composed factory.
+        IComponentFactory? explicitComponents = ApplicationOptions.Components;
+        ComponentFactory defaultComponents = _defaultComponents;
+        Services.TryAddSingleton<IComponentFactory>(services => ViuComponentComposition.Compose(
+            explicitComponents,
+            defaultComponents,
+            services.GetServices<ViuComponentContribution>()));
     }
 
     private static void DisposeServiceProvider(IServiceProvider serviceProvider)

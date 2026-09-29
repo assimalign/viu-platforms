@@ -2,8 +2,9 @@
 
 `Assimalign.Cohesion.Viu.Hosting` is the host-neutral Cohesion application model for Viu. It
 combines Cohesion configuration, dependency injection, environment, hosted-service lifecycle,
-and ownership with Viu's explicit `ApplicationOptions` composition seam. A platform package
-selects the concrete Viu runtime.
+and ownership with Viu's explicit `ApplicationOptions` composition seam. Application components
+and services are registered in the Cohesion service container; `Build()` composes Viu's options
+from it. A platform package selects the concrete Viu runtime.
 
 ## Application model
 
@@ -16,12 +17,12 @@ using Assimalign.Viu.Components;
 
 ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 
-builder.Services.Add(ServiceDescriptor.Singleton<IClock>(
-    _ => new SystemClock()));
+builder.Services.AddComponents(GeneratedViuComponents.Register);
+builder.Services.AddSingleton<IClock>(_ => new SystemClock());
 builder.Configuration["application:title"] = "Cohesion Viu";
 builder.ConfigureApplication(options =>
 {
-    options.RootComponent = new TextNode("Hello from Viu");
+    options.RootComponent = new ComponentNode(ComponentReference.ForName("App"));
 });
 
 // A platform package calls builder.ConfigureHost(...), usually through a
@@ -32,13 +33,37 @@ await application.RunAsync();
 
 The builder exposes:
 
-- `Services`, a Cohesion `ServiceProviderBuilder`;
+- `Services`, a Cohesion `ServiceProviderBuilder` that holds services and component contributions;
 - `Configuration`, a live `ConfigurationManager` with a writable local provider;
 - `Environment`, the `HostEnvironment` registered in the built provider;
 - `ApplicationOptions`, Viu's component, root, services, state, directive, and diagnostic
   composition;
 - `ConfigureApplication(...)` and `ConfigureHost(...)`;
 - a single `Build()` operation.
+
+## Composition from services
+
+`builder.Services.AddComponents(register)` contributes an explicit registration callback, such as
+the generated `GeneratedViuComponents.Register` catalog; `AddComponent(registration)` contributes
+one registration. Contributions run once, in registration order, when `Build()` composes the
+application's component factory, so they do not depend on the order of `ConfigureApplication`
+calls. A library can therefore contribute its components from its own registration method without
+receiving the application's `ComponentFactory`.
+
+- Contributions join the builder's default `ComponentFactory`, which is also the initial
+  `ApplicationOptions.Components`.
+- A factory assigned through `ConfigureApplication` takes precedence; contributed components
+  resolve only when it misses.
+- The composed factory is registered as the `IComponentFactory` service, so application services
+  resolve the same resolver as the runtime. Registering your own `IComponentFactory` service
+  replaces the composition.
+- Contributing the same registration instance twice registers it once. Two different components
+  under one reference fail `Build()` with the conflicting reference in the message.
+
+When `ApplicationOptions.State` or `Directives` is unset, `Build()` resolves an
+`IStateStoreRegistry` or `IDirectiveResolver` service. Unset `WarnHandler` and `ErrorHandler`
+default to writing `Viu warning: ...` and `Viu error (source): ...` lines to standard error.
+Assigned values always win.
 
 Consumers must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the composed
 Cohesion `10.0.0-preview.1.local` hosting surface remains preview-annotated.
@@ -48,13 +73,23 @@ component activation therefore sees the same provider as host services. `IConfig
 `IConfigurationManager`, `ConfigurationManager`, and `IHostEnvironment` resolve from that
 provider, and the same objects are available on `ViuApplicationContext`.
 
-## AOT-safe registration boundary
+## Registration and trimming
 
-This hosting model does not perform constructor discovery. Every service registration must use an
-explicit instance or factory. `Build()` rejects descriptors whose `ImplementationType` is set,
-including registrations produced by type-only `AddSingleton<TService, TImplementation>()`
-overloads. This keeps the integration path free of reflection-based activation, assembly scans,
-and module initializers.
+Services may be registered as instances, factories, or implementation types:
+
+```csharp
+builder.Services.AddSingleton<IClock, SystemClock>();
+```
+
+An implementation type is activated by the Cohesion container, which selects a public constructor
+and resolves its parameters from the provider. The container's type-based registration overloads
+carry `[DynamicallyAccessedMembers(PublicConstructors)]`, so trimming keeps the constructors they
+name. Where dynamic code is not compiled, as on WebAssembly, the container invokes constructors
+through reflection rather than emitting IL. A registration whose implementation `Type` the trimmer
+cannot see, such as one computed at run time, produces a trimming warning at that call site.
+
+The hosting package itself performs no assembly scanning, configuration binding, or module
+initialization, and Viu components are still activated only through their generated registrations.
 
 ## Lifetime and ownership
 
