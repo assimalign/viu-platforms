@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Cohesion.Viu.Hosting;
+using Assimalign.Viu;
 using Assimalign.Viu.Components;
 using Assimalign.Viu.Router;
 
@@ -19,7 +20,6 @@ public sealed class MarkdownHostingTests
     public void RegistersOnlyInstancesAndFactoriesAndResolvesRuntimeDependencies()
     {
         ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
-        ComponentFactory components = new();
         MarkdownContentCatalog catalog = new([]);
         StubSource source = new();
 
@@ -27,7 +27,6 @@ public sealed class MarkdownHostingTests
         {
             options.Catalog = catalog;
             options.Source = source;
-            options.Components = components;
         }).ShouldBeSameAs(builder);
 
         foreach (ServiceDescriptor descriptor in builder.Services.Container)
@@ -42,9 +41,37 @@ public sealed class MarkdownHostingTests
         services.GetRequiredService<IMarkdownContentSource>().ShouldBeSameAs(source);
         services.GetRequiredService<MarkdownVirtualNodeRenderer>().ShouldNotBeNull();
         services.GetRequiredService<MarkdownHtmlRenderer>().ShouldNotBeNull();
-        builder.ApplicationOptions.Components.ShouldBeSameAs(components);
+    }
+
+    [Fact]
+    public async Task ComponentsReachTheApplicationFactoryRegardlessOfConfigurationOrder()
+    {
+        ComponentFactory assignedLater = new();
+        var factory = new CapturingHostFactory();
+        ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
+        builder.AddMarkdownContent(options =>
+        {
+            options.Catalog = new MarkdownContentCatalog([]);
+            options.Source = new StubSource();
+        });
+
+        // Assigning a factory after registration used to drop the Markdown components.
+        builder.ConfigureApplication(options =>
+        {
+            options.RootComponent = new TextNode("root");
+            options.Components = assignedLater;
+        });
+        builder.ConfigureHost(factory);
+
+        await using ViuApplication application = builder.Build();
+
+        IComponentFactory components = factory.Options!.Components;
         components.Resolve(ComponentReference.ForName(nameof(MarkdownPageView)))
             .Contract.ShouldBeSameAs(MarkdownPageView.Registration.Contract);
+        components.Resolve(MarkdownNavigation.Registration.Reference)
+            .ShouldBeSameAs(MarkdownNavigation.Registration);
+        components.Resolve(ComponentReference.ForName(nameof(RouterView)))
+            .Contract.ShouldBeSameAs(RouterView.Registration.Contract);
     }
 
     [Fact]
@@ -54,7 +81,6 @@ public sealed class MarkdownHostingTests
         MarkdownContentCatalog catalog = new([]);
         StubSource source = new();
         int calls = 0;
-        builder.ConfigureApplication(options => options.Components = new ComponentFactory());
         builder.AddMarkdownContent(options =>
         {
             options.Catalog = catalog;
@@ -78,7 +104,6 @@ public sealed class MarkdownHostingTests
     public void RejectsMissingCatalogAndAmbiguousSourcesBeforeRegistering()
     {
         ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
-        builder.ConfigureApplication(options => options.Components = new ComponentFactory());
         Should.Throw<InvalidOperationException>(() => builder.AddMarkdownContent(_ => { }))
             .Message.ShouldContain("catalog");
         Should.Throw<InvalidOperationException>(() => builder.AddMarkdownContent(options =>
@@ -124,5 +149,42 @@ public sealed class MarkdownHostingTests
     {
         public Task<string> ReadAsync(string assetPath, CancellationToken cancellationToken = default)
             => Task.FromResult("# Documentation");
+    }
+
+    private sealed class CapturingHostFactory : IViuApplicationHostFactory
+    {
+        public ApplicationOptions? Options { get; private set; }
+
+        public IApplication CreateApplication(ApplicationOptions applicationOptions)
+        {
+            Options = applicationOptions;
+            return new CapturedApplication(applicationOptions);
+        }
+    }
+
+    private sealed class CapturedApplication : IApplication
+    {
+        private readonly ApplicationLifetime _lifetime;
+
+        public CapturedApplication(ApplicationOptions options)
+        {
+            var context = new ApplicationContext(options);
+            _lifetime = new ApplicationLifetime(context);
+            Context = context;
+        }
+
+        public IApplicationContext Context { get; }
+
+        public IApplication Use(ApplicationMiddleware middleware) => this;
+
+        public ValueTask StartAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+
+        public ValueTask StopAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+
+        public ValueTask DisposeAsync()
+        {
+            _lifetime.Dispose();
+            return ValueTask.CompletedTask;
+        }
     }
 }

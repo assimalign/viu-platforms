@@ -58,15 +58,18 @@ var routes = MarkdownRoutes.Create(GeneratedMarkdownContent.Catalog,
     new MarkdownRouteOptions { LayoutComponent = ComponentReference.ForName("AppShell") });
 ```
 
-The helper adds the catalog, source, node and HTML renderers to services and registers
-`MarkdownPageView`, `MarkdownNavigation`, `RouterLink`, and `RouterView` by type and template name.
-It preserves existing component registrations. Use the builder's concrete `ComponentFactory`, or
-set `options.Components` explicitly; register generated application components in the same factory.
+The helper adds the catalog, source, node and HTML renderers to services and contributes
+`MarkdownPageView`, `MarkdownNavigation`, `RouterLink`, and `RouterView` by type and template name
+through `builder.Services.AddComponents`. The contribution preserves existing registrations and
+reaches the application's component factory regardless of `ConfigureApplication` order; register
+generated application components with `builder.Services.AddComponents(GeneratedViuComponents.Register)`.
 Alternatively supply `SourceFactory` to create a source using the final provider's dependencies.
 Supply exactly one source instance or factory. Instance ownership remains with the caller;
 factory-created disposable dependencies follow the host provider's lifetime.
 
-Register a Viu `Router` over `routes` in services and select its history in the application. The
+Register a Viu `Router` over `routes` in services, for example with
+`Assimalign.Cohesion.Viu.Routing`: `builder.Services.AddRouting()`, then
+`builder.Services.AddRoutes(_ => routes)`, and `application.UseRouter()` after building. The
 optional shell's nested outlet uses depth one. `<MarkdownPageView route="/guide"/>` also works
 without the route helper. Each view loads on mount/update, cancels superseded reads and unmounts,
 ignores stale completions, displays read failures, and awaits content during server prefetch.

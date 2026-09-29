@@ -1,7 +1,5 @@
 using System;
 
-using Assimalign.Viu.Components;
-
 namespace Assimalign.Cohesion.Viu.Markdown;
 
 /// <summary>Collects explicit Markdown dependencies before hosting registers instances or factories.</summary>
@@ -24,7 +22,4 @@ public sealed class MarkdownContentOptions
 
     /// <summary>Gets or sets rendering policies copied when the renderer is constructed.</summary>
     public MarkdownRenderOptions RenderOptions { get; set; } = new();
-
-    /// <summary>Gets or sets the component factory; null uses the builder's existing concrete ComponentFactory.</summary>
-    public ComponentFactory? Components { get; set; }
 }

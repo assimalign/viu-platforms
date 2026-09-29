@@ -85,6 +85,9 @@ The code-first components declare static contracts and registrations, with expli
 binding at setup/render. `[Parameter]` documents the template surface; Viu beta.12 only generates
 attribute binding for single-file components, so runtime registration never scans these attributes.
 `MarkdownComponents.Register` adds type and name references and preserves caller registrations.
+`AddMarkdownContent` contributes it through `builder.Services.AddComponents` instead of mutating
+`ApplicationOptions.Components`. The earlier approach registered into whichever factory the options
+held at call time, so a later `ConfigureApplication` assignment discarded the Markdown components.
 `MarkdownNavigation` stays a small list renderer; applications retain control of shell layout.
 
 `MarkdownPageView` resolves the catalog, content source, and node renderer from `ComponentContext.Services`.
