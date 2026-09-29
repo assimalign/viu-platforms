@@ -2,10 +2,17 @@
 
 ## Registration
 
-`ConfigureBrowser(Action<BrowserApplicationOptions>?)` creates a private
-`BrowserViuApplicationHostFactory` and passes it to the host-neutral `ConfigureHost(...)` seam.
-Hydration and mount-selector values are copied during registration, so later mutation of a
-callback-local options object cannot change the built host.
+`ConfigureBrowser(Action<BrowserApplicationOptions>?)` finds the `BrowserApplicationOptions`
+instance registered in `builder.Services`, or registers a new one, applies the callback, validates
+the mount selector, and passes the stateless `BrowserViuApplicationHostFactory` to the
+host-neutral `ConfigureHost(...)` seam. Repeated calls therefore configure one instance instead of
+replacing earlier settings with defaults. When the last `BrowserApplicationOptions` registration
+is a factory rather than an instance, a new instance is added so the configured values are the
+ones the provider resolves.
+
+The factory resolves the options from the built provider when it creates the runtime and copies
+the hydration flag and mount selector, so mutating the instance after `Build()` cannot change the
+built host.
 
 The API is marked for the browser platform. Its server-TFM test intentionally exercises only
 configuration and `Build()`, which are DOM-free; starting the returned runtime remains a browser

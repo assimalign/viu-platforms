@@ -37,7 +37,10 @@ The consuming project must set `<EnablePreviewFeatures>true</EnablePreviewFeatur
 preview-annotated Cohesion `10.0.0-preview.1.local` hosting APIs.
 
 `ConfigureBrowser(...)` installs a host factory explicitly; it does not scan assemblies or use a
-module initializer. `Build()` copies every Viu application option into `BrowserApplicationBuilder`
+module initializer. Its settings live in one `BrowserApplicationOptions` singleton in
+`builder.Services`, so repeated calls configure the same instance: a later
+`ConfigureBrowser(options => options.Hydrate = true)` keeps a selector set by an earlier call.
+`Build()` copies those settings and every Viu application option into `BrowserApplicationBuilder`
 and is DOM-free. Browser JavaScript is reached only when the application starts.
 
 `RunAsync()` starts Cohesion host services, mounts Viu into the selected DOM element, and keeps the
