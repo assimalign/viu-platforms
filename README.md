@@ -11,6 +11,8 @@ composition remains independent of these packages.
   `ViuApplicationBuilder`, backed by Cohesion dependency injection, configuration, and hosting.
 - `Assimalign.Cohesion.Viu.Hosting.Browser` — the explicit browser host registration that mounts
   through `Assimalign.Viu.Browser`.
+- `Assimalign.Cohesion.Viu.Routing` — opt-in `AddRouting`/`AddRoutes` service registration and
+  `UseRouter` lifetime installation for the Viu router.
 - `Assimalign.Cohesion.Viu.Server` — Cohesion Web middleware for static-web-assets manifests, SPA
   fallback, browser refresh, MIME mapping, cross-origin isolation, and Viu server rendering.
 - `Assimalign.Cohesion.Viu.DevServer` — a packaged Cohesion development server and the MSBuild
@@ -20,7 +22,7 @@ composition remains independent of these packages.
   node rendering, page and navigation components, and optional hosting registration.
 - `Assimalign.Cohesion.Viu.ApplicationModel` — typed site validation and descriptors layered over the Web planner.
 
-All seven packages are versioned together. The current platform version is `10.0.0-preview.1`; it
+All eight packages are versioned together. The current platform version is `10.0.0-preview.1`; it
 composes Cohesion `10.0.0-preview.1.local` and Viu `10.0.0-preview.1`.
 
 ## Application hosting
@@ -41,26 +43,29 @@ ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 builder.Configuration["features:greeting"] = "enabled";
 builder.Services.AddSingleton<IGreetingService>(
     _ => new GreetingService());
+builder.Services.AddComponents(GeneratedViuComponents.Register);
 
 builder.ConfigureApplication(options =>
-{
-    ComponentFactory components = new();
-    GeneratedViuComponents.Register(components);
-
-    options.Components = components;
     options.RootComponent = new ComponentNode(
-        ComponentReference.ForName("App"));
-});
+        ComponentReference.ForName("App")));
 builder.ConfigureBrowser();
 
 ViuApplication application = builder.Build();
 await application.RunAsync();
 ```
 
-Service registrations on this WebAssembly path must use an existing instance or an explicit
-factory. Type-based activation, assembly scanning, configuration binding, and other
-reflection-driven composition are intentionally rejected or excluded. The built provider is
-supplied as Viu's `context.Services`; Cohesion configuration is registered in that provider.
+Components are contributed through `builder.Services`; `Build()` composes every contribution into
+the application's component factory, independent of `ConfigureApplication` order. Unset state and
+directive resolvers come from services, and unset warning and error handlers write to standard
+error. Routing is registered the same way through `Assimalign.Cohesion.Viu.Routing`:
+`builder.Services.AddRouting(...)` before building and `application.UseRouter()` after.
+
+Services may be registered as instances, factories, or implementation types such as
+`builder.Services.AddSingleton<IClock, SystemClock>()`. Implementation types are activated by the
+Cohesion container, whose type-based overloads preserve public constructors for trimming and which
+invokes constructors through reflection, never emitted IL, on WebAssembly. Assembly scanning,
+configuration binding, and module initializers remain excluded. The built provider is supplied as
+Viu's `context.Services`; Cohesion configuration is registered in that provider.
 
 `Assimalign.Cohesion.Viu.Hosting` owns the provider and configuration manager it builds. User
 services start before the selected Viu runtime and stop after it. Browser cancellation follows the
@@ -88,7 +93,9 @@ var routes = MarkdownRoutes.Create(GeneratedMarkdownContent.Catalog,
     });
 ```
 
-Compose the router over `routes` in application services. The shell supplies `depth = 1` to its nested RouterView.
+Register the router with `builder.Services.AddRouting()` and `builder.Services.AddRoutes(_ => routes)`
+from `Assimalign.Cohesion.Viu.Routing`, then call `application.UseRouter()` after building. The
+shell supplies `depth = 1` to its nested RouterView.
 `MarkdownPageView` renders immutable Viu nodes, including `RouterLink` components for known relative
 Markdown links. No anchor-click script is needed. Web history supports ordinary in-page fragments;
 the host owns its scroll policy. A file-system source and awaited server prefetch provide the SSR
@@ -168,7 +175,7 @@ preserved 45-page route/asset baseline:
 pwsh scripts/Verify-MarkdownDocs.ps1
 ```
 
-The script restores, builds, tests, and packs all seven packages into `_out/packages`. Shipping
+The script restores, builds, tests, and packs all eight packages into `_out/packages`. Shipping
 libraries target `net10.0`, use explicit registration, and enable trimming/AOT compatibility
 analysis. The Server package carries Cohesion's App.Web framework reference; Hosting.Browser has
 only its host-neutral Hosting dependency and the Viu Browser runtime dependency.
@@ -186,7 +193,7 @@ The isolated cache is `.nuget/packages`.
 
 Use the prepacked sibling feeds in `cohesion`, `viu`, and `cohesion-platforms`; the latter supplies
 Kubernetes/Docker/Containers at `10.0.0-preview.1`. Run this repository's `Install-Local.ps1` to pack
-all seven hosting-family packages at `10.0.0-preview.1`. CI recreates Cohesion and Viu sibling feeds
+all eight hosting-family packages at `10.0.0-preview.1`. CI recreates Cohesion and Viu sibling feeds
 from `COHESION_SIBLING_REF` and `VIU_SIBLING_REF` repository variables (prefer immutable commits).
 It replaces the root NuGet config so SDK and package resolution use those same feeds. Viu's
 beta.12 Browser SDK was absent from GitHub Packages when this integration was prepared.
