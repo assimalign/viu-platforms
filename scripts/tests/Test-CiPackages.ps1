@@ -229,6 +229,106 @@ finally {
     [System.IO.Directory]::Delete($layoutRoot, $true)
 }
 
+# --- Assert-ViuPlatformsPortableAssembly -------------------------------------------------------
+
+function New-FixtureImage {
+    # A minimal PE32 image: headers, one section, and (unless Native) a CLI header whose
+    # metadata directory points inside the section. PEReader parses only the headers.
+    param(
+        [System.Reflection.PortableExecutable.Machine] $Machine = 'I386',
+        [System.Reflection.PortableExecutable.CorFlags] $CorFlags = 'ILOnly',
+        [switch] $Native
+    )
+    $image = [byte[]]::new(0x400)
+    $writer = [System.IO.BinaryWriter]::new([System.IO.MemoryStream]::new($image))
+    try {
+        $writer.Write([uint16] 0x5A4D); $writer.Seek(0x3C, 'Begin') | Out-Null; $writer.Write([uint32] 0x80)
+        $writer.Seek(0x80, 'Begin') | Out-Null; $writer.Write([uint32] 0x00004550)
+        # COFF header: machine, one section, a 0xE0-byte optional header, a DLL.
+        $writer.Write([uint16] $Machine); $writer.Write([uint16] 1); $writer.Write([byte[]]::new(12))
+        $writer.Write([uint16] 0xE0); $writer.Write([uint16] 0x2102)
+        # PE32 optional header: section alignment 0x2000, file alignment 0x200, 16 directories.
+        $optional = 0x98
+        $writer.Write([uint16] 0x10B)
+        $writer.Seek($optional + 32, 'Begin') | Out-Null; $writer.Write([uint32] 0x2000); $writer.Write([uint32] 0x200)
+        $writer.Seek($optional + 56, 'Begin') | Out-Null; $writer.Write([uint32] 0x4000); $writer.Write([uint32] 0x200)
+        $writer.Seek($optional + 68, 'Begin') | Out-Null; $writer.Write([uint16] 3)
+        $writer.Seek($optional + 92, 'Begin') | Out-Null; $writer.Write([uint32] 16)
+        if (-not $Native) {
+            $writer.Seek($optional + 96 + 14 * 8, 'Begin') | Out-Null; $writer.Write([uint32] 0x2000); $writer.Write([uint32] 72)
+        }
+        # .text: RVA 0x2000 at file offset 0x200.
+        $writer.Seek($optional + 0xE0, 'Begin') | Out-Null
+        $writer.Write([System.Text.Encoding]::ASCII.GetBytes(".text`0`0`0"))
+        $writer.Write([uint32] 0x200); $writer.Write([uint32] 0x2000); $writer.Write([uint32] 0x200); $writer.Write([uint32] 0x200)
+        $writer.Write([byte[]]::new(12)); $writer.Write([uint32] 0x60000020)
+        if (-not $Native) {
+            # CLI header: size, runtime 2.5, metadata at RVA 0x2048, flags.
+            $writer.Seek(0x200, 'Begin') | Out-Null
+            $writer.Write([uint32] 72); $writer.Write([uint16] 2); $writer.Write([uint16] 5)
+            $writer.Write([uint32] 0x2048); $writer.Write([uint32] 0x10); $writer.Write([uint32] $CorFlags)
+        }
+    }
+    finally {
+        $writer.Dispose()
+    }
+
+    return , $image
+}
+
+function New-FixtureAssemblyPackage {
+    param([string] $Name, [hashtable] $Entry)
+    $path = Join-Path $layoutRoot $Name
+    $archive = [System.IO.Compression.ZipFile]::Open($path, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($name in $Entry.Keys) {
+            $stream = $archive.CreateEntry($name).Open()
+            try { $stream.Write($Entry[$name], 0, $Entry[$name].Length) } finally { $stream.Dispose() }
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+
+    return $path
+}
+
+$layoutRoot = Join-Path ([System.IO.Path]::GetTempPath()) "viu-platforms-portable-$([guid]::NewGuid().ToString('N'))"
+[void][System.IO.Directory]::CreateDirectory($layoutRoot)
+try {
+    $anyCpu = New-FixtureImage
+    $portable = New-FixtureAssemblyPackage 'portable.nupkg' @{
+        'tools/Tool.dll'                          = $anyCpu
+        'lib/net10.0/Library.dll'                 = $anyCpu
+        'analyzers/dotnet/cs/Analyzer.dll'        = $anyCpu
+        'tools/Tool.deps.json'                    = [byte[]]::new(2)
+        # NuGet selects runtimes/<rid>/ by RID, so platform-specific assets are allowed there.
+        'runtimes/linux-x64/native/libnative.dll' = (New-FixtureImage -Machine Amd64 -Native)
+        'runtimes/win-arm64/lib/net10.0/Rid.dll'  = (New-FixtureImage -Machine Arm64)
+    }
+    Assert-ViuPlatformsPortableAssembly -PackagePath $portable
+    $script:checks++
+
+    # What a pack on Linux x64 produced: PlatformTarget follows the publish RuntimeIdentifier.
+    $amd64 = New-FixtureAssemblyPackage 'amd64.nupkg' @{ 'tools/Tool.dll' = (New-FixtureImage -Machine Amd64) }
+    Assert-Failure { Assert-ViuPlatformsPortableAssembly -PackagePath $amd64 } '*tools/Tool.dll (machine Amd64)*'
+    $arm64 = New-FixtureAssemblyPackage 'arm64.nupkg' @{ 'lib/net10.0/Library.dll' = (New-FixtureImage -Machine Arm64) }
+    Assert-Failure { Assert-ViuPlatformsPortableAssembly -PackagePath $arm64 } '*lib/net10.0/Library.dll (machine Arm64)*'
+    $x86 = New-FixtureAssemblyPackage 'x86.nupkg' @{ 'tools/Tool.dll' = (New-FixtureImage -CorFlags 'ILOnly, Requires32Bit') }
+    Assert-Failure { Assert-ViuPlatformsPortableAssembly -PackagePath $x86 } '*tools/Tool.dll (32BITREQUIRED)*'
+    $mixed = New-FixtureAssemblyPackage 'mixed.nupkg' @{ 'tools/Tool.dll' = (New-FixtureImage -CorFlags 0) }
+    Assert-Failure { Assert-ViuPlatformsPortableAssembly -PackagePath $mixed } '*tools/Tool.dll (not ILONLY)*'
+    $readyToRun = New-FixtureAssemblyPackage 'r2r.nupkg' @{ 'tools/Tool.dll' = (New-FixtureImage -CorFlags 'ILOnly, ILLibrary') }
+    Assert-Failure { Assert-ViuPlatformsPortableAssembly -PackagePath $readyToRun } '*tools/Tool.dll (ReadyToRun)*'
+    $native = New-FixtureAssemblyPackage 'native.nupkg' @{ 'tools/Tool.exe' = (New-FixtureImage -Machine Amd64 -Native) }
+    Assert-Failure { Assert-ViuPlatformsPortableAssembly -PackagePath $native } '*tools/Tool.exe (native Amd64 image)*'
+    $notImage = New-FixtureAssemblyPackage 'not-image.nupkg' @{ 'tools/Tool.dll' = [byte[]]::new(16) }
+    Assert-Failure { Assert-ViuPlatformsPortableAssembly -PackagePath $notImage } '*tools/Tool.dll (not a PE image)*'
+}
+finally {
+    [System.IO.Directory]::Delete($layoutRoot, $true)
+}
+
 # --- The inventory is what ci-packages.yml pushes ----------------------------------------------
 
 $repository = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))

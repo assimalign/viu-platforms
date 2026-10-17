@@ -9,6 +9,9 @@
     <Description>Package-integrated Cohesion development server for Viu browser applications.</Description>
     <PackageTags>Viu;Cohesion;WebAssembly;WASM;DevelopmentServer</PackageTags>
     <RuntimeIdentifiers>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifiers>
+    <!-- The packaged tool runs under the consumer's dotnet, whatever its architecture. Without this, the RuntimeIdentifier
+         the Cohesion SDK and the tools publish select stamps the assembly x64 or Arm64 for the packing machine. -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <ToolsPublishDirectory>$(BaseIntermediateOutputPath)tools-publish\$(Configuration)\$(TargetFramework)\</ToolsPublishDirectory>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddDevServerToolsToPackage</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
@@ -35,6 +38,20 @@
       Targets="Publish"
       BuildInParallel="false"
       Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);PublishDir=$(ToolsPublishDirectory);SelfContained=false;UseAppHost=false;PublishSingleFile=false;RuntimeIdentifier=$(NETCoreSdkRuntimeIdentifier);ViuCollectCohesionRuntimePacks=true;NoBuild=false;NoRestore=true" />
+  </Target>
+
+  <!-- Each Cohesion runtime pack <Framework>.Runtime.<rid> carries an anchor assembly named <Framework>. The anchor defines
+       no types and nothing references it, but it is compiled for the pack's RID, so it is the one non-portable file in the
+       closure. Removing it from RuntimePackAsset keeps it out of both the publish directory and the deps.json. -->
+  <Target Name="RemoveCohesionFrameworkAnchorAssemblies"
+          AfterTargets="ResolveRuntimePackAssets"
+          Condition="'$(ViuCollectCohesionRuntimePacks)' == 'true'">
+    <ItemGroup>
+      <_CohesionFrameworkAnchorAssembly Include="@(RuntimePackAsset)"
+                                        Condition="'%(RuntimePackAsset.AssetType)' == 'runtime' and '%(RuntimePackAsset.NuGetPackageId)' == '%(RuntimePackAsset.Filename).Runtime.%(RuntimePackAsset.RuntimeIdentifier)'" />
+      <RuntimePackAsset Remove="@(_CohesionFrameworkAnchorAssembly)" />
+      <ReferenceCopyLocalPaths Remove="@(_CohesionFrameworkAnchorAssembly)" />
+    </ItemGroup>
   </Target>
 
   <Target Name="AddDevServerToolsToPackage" DependsOnTargets="PublishDevServerTools">

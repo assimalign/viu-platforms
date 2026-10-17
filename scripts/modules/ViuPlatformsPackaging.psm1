@@ -187,6 +187,96 @@ function Assert-ViuPlatformsPackageLayout {
     }
 }
 
+function Assert-ViuPlatformsPortableAssembly {
+    <#
+    .SYNOPSIS
+        Fails unless every assembly a packed .nupkg carries outside runtimes/ runs on every host
+        architecture.
+
+    .DESCRIPTION
+        NuGet selects by RID only under runtimes/<rid>/, so lib/, analyzers/, and tools/ assets
+        load on whatever host the consumer has. An assembly compiled for one RID still packs and
+        still works on the packing machine, then fails on another architecture with "The assembly
+        architecture is not compatible with the current process architecture." The DevServer's
+        tools/ payload shipped that way once, because the Linux x64 CI pack stamped it AMD64.
+
+        Every .dll and .exe outside runtimes/ must therefore be a managed image with PE machine
+        I386 and the ILONLY flag, without 32BITREQUIRED (an x86-only image) or ILLIBRARY (a
+        ReadyToRun image, whose native code targets one architecture).
+
+    .PARAMETER PackagePath
+        The .nupkg to inspect.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $PackagePath
+    )
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $packageName = [System.IO.Path]::GetFileName($PackagePath)
+    $nonPortable = [System.Collections.Generic.List[string]]::new()
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
+    try {
+        foreach ($entry in $archive.Entries) {
+            $extension = [System.IO.Path]::GetExtension($entry.FullName)
+            if ($extension -notin @('.dll', '.exe') -or $entry.FullName.StartsWith('runtimes/', [System.StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+
+            # PEHeaders needs a seekable stream; a zip entry stream is not one.
+            $image = [System.IO.MemoryStream]::new()
+            $entryStream = $entry.Open()
+            try {
+                $entryStream.CopyTo($image)
+            }
+            finally {
+                $entryStream.Dispose()
+            }
+
+            $image.Position = 0
+            try {
+                # The constructor, not PEReader.PEHeaders: PowerShell can turn a throwing property
+                # getter into $null.
+                $headers = [System.Reflection.PortableExecutable.PEHeaders]::new($image)
+                $machine = $headers.CoffHeader.Machine
+                if ($null -eq $headers.CorHeader) {
+                    $nonPortable.Add("$($entry.FullName) (native $machine image)")
+                    continue
+                }
+
+                $flags = $headers.CorHeader.Flags
+                $reason = @()
+                if ($machine -ne [System.Reflection.PortableExecutable.Machine]::I386) { $reason += "machine $machine" }
+                if (-not $flags.HasFlag([System.Reflection.PortableExecutable.CorFlags]::ILOnly)) { $reason += 'not ILONLY' }
+                if ($flags.HasFlag([System.Reflection.PortableExecutable.CorFlags]::Requires32Bit)) { $reason += '32BITREQUIRED' }
+                if ($flags.HasFlag([System.Reflection.PortableExecutable.CorFlags]::ILLibrary)) { $reason += 'ReadyToRun' }
+                if ($reason.Count -gt 0) {
+                    $nonPortable.Add("$($entry.FullName) ($($reason -join ', '))")
+                }
+            }
+            catch {
+                # PowerShell wraps the constructor's exception, so match the original one.
+                if ($_.Exception.GetBaseException() -isnot [System.BadImageFormatException]) {
+                    throw
+                }
+
+                $nonPortable.Add("$($entry.FullName) (not a PE image)")
+            }
+            finally {
+                $image.Dispose()
+            }
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+
+    if ($nonPortable.Count -gt 0) {
+        throw "$packageName carries assemblies that do not load on every host architecture (expected PE machine I386 with ILONLY): $($nonPortable -join '; ')"
+    }
+}
+
 function Get-ViuPlatformsReleasePackageId {
     <#
     .SYNOPSIS
@@ -624,6 +714,7 @@ function ConvertTo-ViuPlatformsPackageTimestamp {
 Export-ModuleMember -Function `
     Get-ViuPlatformsReleasePackage,
     Assert-ViuPlatformsPackageLayout,
+    Assert-ViuPlatformsPortableAssembly,
     Get-ViuPlatformsReleasePackageId,
     Get-ViuPlatformsVersion,
     Get-ViuPlatformsCiPackageVersion,

@@ -120,11 +120,12 @@ if ($difference.Count -ne 0) {
 }
 
 foreach ($package in $releasePackage) {
-    Assert-ViuPlatformsPackageLayout `
-        -PackagePath (Join-Path $packageDirectory "$($package.Id).$Version.nupkg") `
-        -RequiredEntry $package.RequiredEntry
+    $packagePath = Join-Path $packageDirectory "$($package.Id).$Version.nupkg"
+    Assert-ViuPlatformsPackageLayout -PackagePath $packagePath -RequiredEntry $package.RequiredEntry
+    # CI packs on Linux x64; consumers run on any architecture.
+    Assert-ViuPlatformsPortableAssembly -PackagePath $packagePath
 }
-Write-Host "Validated the package layout of all $($releasePackage.Count) packages." -ForegroundColor Green
+Write-Host "Validated the package layout and assembly portability of all $($releasePackage.Count) packages." -ForegroundColor Green
 
 $expectedPackageFile | Set-Content -LiteralPath (Join-Path $packageDirectory 'package-order.txt') -Encoding utf8
 $checksumLine = foreach ($packageFile in $expectedPackageFile) {
