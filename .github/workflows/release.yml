@@ -112,8 +112,6 @@ jobs:
 
       - name: Set up CI
         uses: ./.github/actions/setup
-        with:
-          viu-sibling-ref: ${{ vars.VIU_SIBLING_REF }}
 
       - name: Restore
         shell: pwsh

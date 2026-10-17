@@ -1,22 +1,11 @@
-# The one CI environment setup for this repository: .NET (pinned by global.json), the wasm-tools
-# workload, and the Viu packages the solution restores.
+# The one CI environment setup for this repository: .NET (pinned by global.json) and the wasm-tools
+# workload.
 #
-# Cohesion needs no step here. global.json pins a Cohesion CI or release build, and NuGet.config
-# restores it from the Assimalign GitHub Packages feed with the credential the calling job supplies
-# as NuGetPackageSourceCredentials_assimalign.
-#
-# Viu publishes no packages to a feed yet, so this action still packs the sibling viu repository at
-# viu-sibling-ref into ../viu/_out/packages, the viu-local source NuGet.config names. Once viu's
-# ci-packages.yml publishes, pin a Viu CI build in global.json and
-# build/Targets/Build.References.Packages.targets, map Assimalign.Viu.* to the assimalign source,
-# and delete this step together with .github/scripts/Pack-ViuSibling.ps1.
+# Packages need no step here. global.json pins a Cohesion build and a Viu build (each a CI or
+# release version), and NuGet.config restores both from the Assimalign GitHub Packages feed with the
+# credential the calling job supplies as NuGetPackageSourceCredentials_assimalign.
 name: Set up Viu Platforms CI
-description: .NET, the wasm-tools workload, and the sibling Viu package feed.
-
-inputs:
-  viu-sibling-ref:
-    description: The viu commit (preferred) or ref whose packages the solution restores.
-    required: true
+description: .NET and the wasm-tools workload.
 
 runs:
   using: composite
@@ -29,14 +18,3 @@ runs:
     - name: Install WebAssembly workload
       shell: pwsh
       run: dotnet workload install wasm-tools
-
-    - name: Pack the sibling Viu packages
-      shell: pwsh
-      env:
-        VIU_SIBLING_REF: ${{ inputs.viu-sibling-ref }}
-      run: |
-        if (-not $env:VIU_SIBLING_REF) {
-          throw 'Set the VIU_SIBLING_REF repository variable to the viu commit whose packages this build restores; Viu has no packages on a feed yet.'
-        }
-
-        ./.github/scripts/Pack-ViuSibling.ps1 -Ref $env:VIU_SIBLING_REF

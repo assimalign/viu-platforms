@@ -2,11 +2,10 @@
 # per-area workflow model (assimalign/cohesion resource-web.yml): every push that touches the
 # area builds and tests the whole platform solution.
 #
-# Cohesion restores from the Assimalign GitHub Packages feed at the build global.json pins (a
-# cohesion ci-packages.yml build or a release). These packages are public, so the workflow token
-# with packages: read is the credential; NuGet reads it from NuGetPackageSourceCredentials_assimalign
-# and nothing is written to a config file. Viu still restores from a sibling pack at
-# VIU_SIBLING_REF; see .github/actions/setup.
+# Cohesion and Viu restore from the Assimalign GitHub Packages feed at the builds global.json pins (a
+# ci-packages.yml build of each repository or a release). These packages are public, so the workflow
+# token with packages: read is the credential; NuGet reads it from
+# NuGetPackageSourceCredentials_assimalign and nothing is written to a config file.
 name: Platform - Cohesion
 
 on:
@@ -48,8 +47,6 @@ jobs:
 
       - name: Set up CI
         uses: ./.github/actions/setup
-        with:
-          viu-sibling-ref: ${{ vars.VIU_SIBLING_REF }}
 
       - name: Test CI package version and prune policy
         shell: pwsh
