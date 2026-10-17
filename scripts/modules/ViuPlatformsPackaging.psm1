@@ -20,15 +20,67 @@ Set-StrictMode -Version Latest
 # Every published Viu Platforms package, in dependency-safe publication order. ApplicationModel has
 # no project dependency; Hosting is the base of Markdown, Hosting.Browser, Routing, and Server;
 # DevServer packs Server; the template pack is content only.
+#
+# RequiredEntry names the package paths a consumer loads by convention: the readme, MSBuild props
+# and targets, analyzers, and tools. Assert-ViuPlatformsPackageLayout fails a pack that misplaces
+# one, because NuGet still produces a package when a PackagePath is wrong, and the consumer then
+# silently ignores the asset.
 $script:ViuPlatformsReleasePackage = @(
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.ApplicationModel'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/src/Assimalign.Cohesion.Viu.ApplicationModel.csproj' }
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.Hosting'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj' }
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.Markdown'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/src/Assimalign.Cohesion.Viu.Markdown.csproj' }
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.Hosting.Browser'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj' }
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.Routing'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.Routing/src/Assimalign.Cohesion.Viu.Routing.csproj' }
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.Server'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj' }
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.DevServer'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj' }
-    [pscustomobject]@{ Id = 'Assimalign.Cohesion.Viu.Templates'; Project = 'platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj' }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.ApplicationModel'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/src/Assimalign.Cohesion.Viu.ApplicationModel.csproj'
+        RequiredEntry = @('README.md', 'lib/net10.0/Assimalign.Cohesion.Viu.ApplicationModel.dll')
+    }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.Hosting'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj'
+        RequiredEntry = @('README.md', 'lib/net10.0/Assimalign.Cohesion.Viu.Hosting.dll')
+    }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.Markdown'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/src/Assimalign.Cohesion.Viu.Markdown.csproj'
+        RequiredEntry = @(
+            'README.md',
+            'lib/net10.0/Assimalign.Cohesion.Viu.Markdown.dll',
+            'build/Assimalign.Cohesion.Viu.Markdown.props',
+            'build/Assimalign.Cohesion.Viu.Markdown.targets',
+            'analyzers/dotnet/cs/Assimalign.Cohesion.Viu.Markdown.Generator.dll')
+    }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.Hosting.Browser'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj'
+        RequiredEntry = @('README.md', 'lib/net10.0/Assimalign.Cohesion.Viu.Hosting.Browser.dll')
+    }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.Routing'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.Routing/src/Assimalign.Cohesion.Viu.Routing.csproj'
+        RequiredEntry = @('README.md', 'lib/net10.0/Assimalign.Cohesion.Viu.Routing.dll')
+    }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.Server'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj'
+        RequiredEntry = @(
+            'README.md',
+            'lib/net10.0/Assimalign.Cohesion.Viu.Server.dll',
+            'buildTransitive/Assimalign.Cohesion.Viu.Server.props',
+            'buildTransitive/Assimalign.Cohesion.Viu.Server.targets')
+    }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.DevServer'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj'
+        RequiredEntry = @(
+            'README.md',
+            'build/Assimalign.Cohesion.Viu.DevServer.targets',
+            'tools/Assimalign.Cohesion.Viu.DevServer.dll')
+    }
+    [pscustomobject]@{
+        Id            = 'Assimalign.Cohesion.Viu.Templates'
+        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj'
+        RequiredEntry = @(
+            'README.md',
+            'content/viu-cohesion/.template.config/template.json',
+            'content/viu-cohesion-web/.template.config/template.json')
+    }
 )
 
 # Prerelease identifiers the CI channel reserves. A canonical ViuPlatformsVersion may not contain
@@ -62,7 +114,7 @@ function Get-ViuPlatformsReleasePackage {
             throw "The release inventory names $($package.Id) at $($package.Project), which does not exist."
         }
 
-        [pscustomobject]@{ Id = $package.Id; ProjectPath = $projectPath }
+        [pscustomobject]@{ Id = $package.Id; ProjectPath = $projectPath; RequiredEntry = $package.RequiredEntry }
     }
 
     $contentSegment = [System.IO.Path]::DirectorySeparatorChar + 'content' + [System.IO.Path]::DirectorySeparatorChar
@@ -83,6 +135,56 @@ function Get-ViuPlatformsReleasePackage {
     }
 
     return $configured
+}
+
+function Assert-ViuPlatformsPackageLayout {
+    <#
+    .SYNOPSIS
+        Fails unless a packed .nupkg holds every required entry at its exact path and no entry
+        path is malformed.
+
+    .DESCRIPTION
+        NuGet appends a file name to a directory-style PackagePath with Path.Combine. On Linux a
+        backslash is not a separator, so PackagePath="build\" packs build\/X.props there while the
+        same project packs build/X.props on Windows: the package still builds, and consumers never
+        load the asset. Every entry path must therefore use forward slashes only, with no empty
+        segment and no leading slash, and each required entry must match ordinally.
+
+    .PARAMETER PackagePath
+        The .nupkg to inspect.
+
+    .PARAMETER RequiredEntry
+        Package-relative paths that must be present, for example build/<id>.props.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $PackagePath,
+
+        [AllowEmptyCollection()]
+        [string[]] $RequiredEntry = @()
+    )
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
+    try {
+        $entry = @($archive.Entries | ForEach-Object { $_.FullName })
+    }
+    finally {
+        $archive.Dispose()
+    }
+
+    $packageName = [System.IO.Path]::GetFileName($PackagePath)
+    $malformed = @($entry | Where-Object { $_.Contains('\') -or $_.Contains('//') -or $_.StartsWith('/') })
+    if ($malformed.Count -gt 0) {
+        throw "$packageName has malformed entry paths (a backslash or empty segment in a PackagePath packs them where consumers never look): $($malformed -join ', ')"
+    }
+
+    $entrySet = [System.Collections.Generic.HashSet[string]]::new([string[]] $entry, [System.StringComparer]::Ordinal)
+    $missing = @($RequiredEntry | Where-Object { -not $entrySet.Contains($_) })
+    if ($missing.Count -gt 0) {
+        throw "$packageName is missing required entries: $($missing -join ', ')"
+    }
 }
 
 function Get-ViuPlatformsReleasePackageId {
@@ -521,6 +623,7 @@ function ConvertTo-ViuPlatformsPackageTimestamp {
 
 Export-ModuleMember -Function `
     Get-ViuPlatformsReleasePackage,
+    Assert-ViuPlatformsPackageLayout,
     Get-ViuPlatformsReleasePackageId,
     Get-ViuPlatformsVersion,
     Get-ViuPlatformsCiPackageVersion,

@@ -16,7 +16,7 @@
   <ItemGroup>
     <None Include="README.md"
           Pack="true"
-          PackagePath="\" />
+          PackagePath="README.md" />
     <None Include="content\**\*"
           Exclude="content\**\bin\**;content\**\obj\**"
           Pack="true"

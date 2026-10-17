@@ -119,6 +119,13 @@ if ($difference.Count -ne 0) {
     throw "The release package set is not exactly the inventory at ${Version}: $($difference | Out-String)"
 }
 
+foreach ($package in $releasePackage) {
+    Assert-ViuPlatformsPackageLayout `
+        -PackagePath (Join-Path $packageDirectory "$($package.Id).$Version.nupkg") `
+        -RequiredEntry $package.RequiredEntry
+}
+Write-Host "Validated the package layout of all $($releasePackage.Count) packages." -ForegroundColor Green
+
 $expectedPackageFile | Set-Content -LiteralPath (Join-Path $packageDirectory 'package-order.txt') -Encoding utf8
 $checksumLine = foreach ($packageFile in $expectedPackageFile) {
     $hash = Get-FileHash -LiteralPath (Join-Path $packageDirectory $packageFile) -Algorithm SHA256

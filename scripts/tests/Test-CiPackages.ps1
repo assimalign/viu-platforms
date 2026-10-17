@@ -187,6 +187,48 @@ Assert-Failure {
 } '*no parseable CreatedAt*'
 Assert-Condition ((Select-ViuPlatformsCiPackageVersionToPrune -PackageVersion @()).Count -eq 0) 'an empty feed selects nothing'
 
+# --- Assert-ViuPlatformsPackageLayout ----------------------------------------------------------
+
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$layoutRoot = Join-Path ([System.IO.Path]::GetTempPath()) "viu-platforms-layout-$([guid]::NewGuid().ToString('N'))"
+[void][System.IO.Directory]::CreateDirectory($layoutRoot)
+function New-FixturePackage {
+    param([string] $Name, [string[]] $Entry)
+    $path = Join-Path $layoutRoot $Name
+    $archive = [System.IO.Compression.ZipFile]::Open($path, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($name in $Entry) { [void]$archive.CreateEntry($name) }
+    }
+    finally {
+        $archive.Dispose()
+    }
+
+    return $path
+}
+
+try {
+    $required = @('README.md', 'buildTransitive/Fixture.props')
+    $good = New-FixturePackage 'good.nupkg' @('Fixture.nuspec', 'README.md', 'buildTransitive/Fixture.props', 'lib/net10.0/Fixture.dll')
+    Assert-ViuPlatformsPackageLayout -PackagePath $good -RequiredEntry $required
+    $script:checks++
+
+    # What PackagePath="buildTransitive\" packs on Linux: Path.Combine keeps the backslash.
+    $linuxBackslash = New-FixturePackage 'backslash.nupkg' @('README.md', 'buildTransitive\/Fixture.props')
+    Assert-Failure { Assert-ViuPlatformsPackageLayout -PackagePath $linuxBackslash -RequiredEntry $required } '*malformed entry paths*'
+    $emptySegment = New-FixturePackage 'empty-segment.nupkg' @('README.md', 'buildTransitive//Fixture.props')
+    Assert-Failure { Assert-ViuPlatformsPackageLayout -PackagePath $emptySegment -RequiredEntry $required } '*malformed entry paths*'
+    $rooted = New-FixturePackage 'rooted.nupkg' @('/README.md', 'buildTransitive/Fixture.props')
+    Assert-Failure { Assert-ViuPlatformsPackageLayout -PackagePath $rooted -RequiredEntry $required } '*malformed entry paths*'
+    $misplaced = New-FixturePackage 'misplaced.nupkg' @('README.md', 'build/Fixture.props')
+    Assert-Failure { Assert-ViuPlatformsPackageLayout -PackagePath $misplaced -RequiredEntry $required } '*missing required entries: buildTransitive/Fixture.props*'
+    $wrongCase = New-FixturePackage 'wrong-case.nupkg' @('readme.md', 'buildTransitive/Fixture.props')
+    Assert-Failure { Assert-ViuPlatformsPackageLayout -PackagePath $wrongCase -RequiredEntry $required } '*missing required entries: README.md*'
+}
+finally {
+    [System.IO.Directory]::Delete($layoutRoot, $true)
+}
+
 # --- The inventory is what ci-packages.yml pushes ----------------------------------------------
 
 $repository = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -195,6 +237,7 @@ Assert-Condition ($packageId.Count -eq 8) "the release inventory is 8 packages, 
 Assert-Condition ($packageId[0] -eq 'Assimalign.Cohesion.Viu.ApplicationModel' -and $packageId[-1] -eq 'Assimalign.Cohesion.Viu.Templates') 'the inventory is in publication order'
 $releasePackage = @(Get-ViuPlatformsReleasePackage -RepositoryDirectory $repository)
 Assert-Condition ($releasePackage.Count -eq 8) 'every inventory project exists and no packable project is missing from it'
+Assert-Condition (@($releasePackage | Where-Object { $_.RequiredEntry -notcontains 'README.md' }).Count -eq 0) 'every package requires its readme at the package root'
 Assert-Condition ((Get-ViuPlatformsVersion -RepositoryDirectory $repository) -match '^[0-9]+\.[0-9]+\.[0-9]+') 'reads the canonical version from Build.Version.props'
 
 $fixture = Join-Path ([System.IO.Path]::GetTempPath()) "viu-platforms-inventory-$([guid]::NewGuid().ToString('N'))"
