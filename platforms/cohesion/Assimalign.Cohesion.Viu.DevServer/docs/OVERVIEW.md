@@ -35,7 +35,9 @@ Package presence therefore wins over the Viu SDK's default `WasmAppHost` choice.
 The packaging publish selects the build host RID only to resolve Cohesion's all-managed App/App.Web
 runtime packs. It emits no app host or self-contained Microsoft runtime. Cohesion and Viu runtime
 assemblies are copy-local under `tools/`, and the generated runtimeconfig names only
-`Microsoft.NETCore.App`; the consumer needs a compatible Microsoft .NET 10 runtime.
+`Microsoft.NETCore.App`; the consumer needs a compatible Microsoft .NET 10 runtime. Every assembly
+under `tools/` is AnyCPU IL, so the payload runs under the consumer's `dotnet` on any architecture
+.NET 10 supports, whichever machine packed it.
 
 ## Current Cohesion line
 

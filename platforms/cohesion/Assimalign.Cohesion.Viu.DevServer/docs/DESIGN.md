@@ -29,6 +29,40 @@ assemblies. The runtimeconfig therefore retains only `Microsoft.NETCore.App`, wh
 Viu assemblies are carried beside the tool. No Cohesion shared-framework installation, app host,
 or self-contained Microsoft runtime is required on the consumer machine.
 
+## Portable tool payload
+
+`tools/` runs under the consumer's `dotnet exec`, on whatever architecture that host is: win-x64,
+win-arm64, linux-x64, linux-arm64, or osx-arm64. CI packs on Linux x64, so the payload must not
+depend on the packing machine's architecture. It is one portable layout of AnyCPU IL assemblies.
+
+The publish still needs a RuntimeIdentifier. App and App.Web ship only as RID-named runtime packs
+(`Assimalign.Cohesion.App.Runtime.<rid>`), and the .NET SDK resolves runtime-pack assets only for a
+RID. A RID-less publish drops the App/App.Web closure without an error: only the Cohesion
+assemblies that arrive as ordinary NuGet packages remain, and the tool cannot start.
+
+The closure itself does not vary by RID. Across the win-arm64 and linux-x64 packs every assembly is
+byte-identical AnyCPU IL except each framework's anchor assembly (`Assimalign.Cohesion.App.dll`,
+`Assimalign.Cohesion.App.Web.dll`). An anchor defines no types and no assembly references it, but
+it is compiled for its pack's RID (PE machine AMD64 or Arm64). The publish removes anchors from
+`RuntimePackAsset`, which keeps them out of both the directory and the deps.json. The tool
+assembly sets `PlatformTarget=AnyCPU`, because the SDK otherwise derives the platform target from
+the RuntimeIdentifier. The setting applies to every build, not only the nested publish: the
+compiler's incremental cache does not track `PlatformTarget`, so a nested publish that differed
+from the outer build could reuse a stale image. The deps.json still names the packing RID
+(`.NETCoreApp,Version=v10.0/linux-x64`). The framework-dependent host loads app-local assets from
+it on any RID; a linux-x64 pack starts under both win-arm64 and win-x64 `dotnet`.
+
+Per-RID payload folders (`tools/<rid>/`, selected in the build target by
+`NETCoreSdkRuntimeIdentifier`) were rejected. They would multiply the 4.5 MB payload by five, make
+every pack download five runtime-pack pairs, and add a selection step that could pick the wrong
+host. None of that buys anything while the closure is RID-neutral.
+
+`Assert-ViuPlatformsPortableAssembly` (`scripts/modules/ViuPlatformsPackaging.psm1`) fails
+`Pack-Release.ps1` when any package carries a `.dll` or `.exe` outside `runtimes/` that is not PE
+machine I386 with ILONLY, or that is 32BITREQUIRED or ReadyToRun. If a future Cohesion runtime
+pack ships a RID-specific implementation or a native asset, the pack fails there. That is the
+point to revisit per-RID folders. `ToolAssemblyPortabilityTests` pins the tool assembly itself.
+
 ## Constraints and omitted surface
 
 - This host is development-only and supports HTTP/1.1. TLS, HTTP/2, HTTP/3, production hardening, and access logging are outside its contract.
