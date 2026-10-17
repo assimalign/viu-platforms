@@ -23,9 +23,8 @@ composition remains independent of these packages.
 - `Assimalign.Cohesion.Viu.ApplicationModel` — typed site validation and descriptors layered over the Web planner.
 
 All eight packages are versioned together. The current platform version is `10.0.0-preview.1`; it
-composes the Cohesion build [`global.json`](global.json) pins (see
-[Getting the Assimalign.Cohesion packages](#getting-the-assimaligncohesion-packages)) and Viu
-`10.0.0-preview.1`.
+composes the Cohesion and Viu builds [`global.json`](global.json) pins (see
+[Getting the Assimalign.Cohesion and Assimalign.Viu packages](#getting-the-assimaligncohesion-and-assimalignviu-packages)).
 
 ## Application hosting
 
@@ -162,8 +161,8 @@ generated-component registration, and the Cohesion development server.
 
 ## Local build
 
-`NuGet.config` restores Cohesion from the Assimalign GitHub Packages feed, Viu from the sibling
-`../viu/_out/packages` output, and this repository's own packages from `_out/packages`. Package
+`NuGet.config` restores Cohesion and Viu from the Assimalign GitHub Packages feed and this
+repository's own packages from `_out/packages`. Package
 versions are applied with `PackageReference Update` items in `Directory.Build.targets`; this
 repository does not use NuGet central package management.
 
@@ -183,7 +182,7 @@ libraries target `net10.0`, use explicit registration, and enable trimming/AOT c
 analysis. The Server package carries Cohesion's App.Web framework reference; Hosting.Browser has
 only its host-neutral Hosting dependency and the Viu Browser runtime dependency.
 
-## Getting the Assimalign.Cohesion packages
+## Getting the Assimalign.Cohesion and Assimalign.Viu packages
 
 Cohesion comes from the Assimalign GitHub Packages feed, never from a sibling checkout. The one pin
 is the `Assimalign.Cohesion.Sdk` entry in [`global.json`](global.json)'s `msbuild-sdks` block:
@@ -212,11 +211,13 @@ $env:NuGetPackageSourceCredentials_assimalign = "Username=<github-user>;Password
 CI sets the same variable from the workflow token. The isolated package cache is
 `.nuget/packages`.
 
-Viu has no packages on a feed yet, so it still comes from the sibling `viu` checkout:
-`../viu/scripts/Install-Local.ps1` locally, and in CI `.github/scripts/Pack-ViuSibling.ps1` at the
-`VIU_SIBLING_REF` repository variable (prefer an immutable commit). Once viu's own CI package
-channel publishes, pin a Viu CI build the same way and remove the sibling step from
-[`.github/actions/setup`](.github/actions/setup/action.yml).
+Viu comes from the same feed the same way. The one pin is the `Assimalign.Viu.Sdk` entry in
+`global.json`; keep `Assimalign.Viu.Sdk.Browser` at the same version, and
+`Build.References.Packages.targets` reads the `Assimalign.Viu.Sdk` entry for every Viu library
+reference. viu's `ci-packages.yml` publishes `10.0.0-preview.0.ci.<run>` for every merge to viu
+`main` and `10.0.0-preview.0.pr.<pr>.<run>` for an open viu pull request, under the same retention
+rules. The current pin is `10.0.0-preview.0.ci.4` (viu `07facbc`). A CI build of this repository
+carries both pins into its package dependencies, so a consumer restores the whole set from the feed.
 
 ## CI packages
 

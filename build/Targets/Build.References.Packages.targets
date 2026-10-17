@@ -1,19 +1,21 @@
 <Project>
   <PropertyGroup>
     <!--
-      global.json is the one Cohesion pin. Its msbuild-sdks entries select the SDK and framework
-      packs, and this reads the same entry so every library reference restores the identical build.
-      Move the pin by editing global.json alone, to a CI build (10.0.0-preview.0.ci.N for main,
-      10.0.0-preview.0.pr.<pr>.N for a cohesion pull request) or a release.
+      global.json is the one Cohesion pin and the one Viu pin. Its msbuild-sdks entries select the
+      SDK and framework packs, and this reads the same entries so every library reference restores
+      the identical build. Move a pin by editing global.json alone, to a CI build
+      (10.0.0-preview.0.ci.N for main, 10.0.0-preview.0.pr.<pr>.N for a pull request) or a release.
     -->
     <_ViuPlatformsGlobalJson>$([System.IO.File]::ReadAllText('$(ViuPlatformsRepositoryDirectory)global.json'))</_ViuPlatformsGlobalJson>
     <CohesionPackageVersion>$([System.Text.RegularExpressions.Regex]::Replace($(_ViuPlatformsGlobalJson), '(?s)^.*"Assimalign\.Cohesion\.Sdk"\s*:\s*"([^"]+)".*$', '$1'))</CohesionPackageVersion>
-    <ViuVersion>10.0.0-preview.1</ViuVersion>
+    <ViuVersion>$([System.Text.RegularExpressions.Regex]::Replace($(_ViuPlatformsGlobalJson), '(?s)^.*"Assimalign\.Viu\.Sdk"\s*:\s*"([^"]+)".*$', '$1'))</ViuVersion>
   </PropertyGroup>
 
   <Target Name="_ValidateCohesionPackageVersion" BeforeTargets="CollectPackageReferences;_CheckForInvalidConfigurationAndPlatform">
     <Error Condition="$(CohesionPackageVersion.Contains('{'))"
            Text="global.json must pin Assimalign.Cohesion.Sdk in its msbuild-sdks block; the Cohesion library references read that pin." />
+    <Error Condition="$(ViuVersion.Contains('{'))"
+           Text="global.json must pin Assimalign.Viu.Sdk in its msbuild-sdks block; the Viu library references read that pin." />
   </Target>
 
   <ItemGroup>
