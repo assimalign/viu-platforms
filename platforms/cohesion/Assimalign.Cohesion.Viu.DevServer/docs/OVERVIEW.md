@@ -39,7 +39,7 @@ assemblies are copy-local under `tools/`, and the generated runtimeconfig names 
 
 ## Current Cohesion line
 
-Version `10.0.0-preview.1` builds and packs against Cohesion `10.0.0-preview.1.local`. The packaged
+Version `10.0.0-preview.1` builds and packs against the Cohesion build `global.json` pins. The packaged
 managed runtime closure remains self-sufficient except for the installed Microsoft.NETCore.App.
 The Server middleware also exposes the public client document and reserves resource control-plane
 routes. For deployable sites use `viu-cohesion-web`; this tool remains the development host.

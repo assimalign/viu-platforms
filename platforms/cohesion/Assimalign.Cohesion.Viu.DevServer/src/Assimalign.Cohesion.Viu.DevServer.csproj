@@ -1,4 +1,4 @@
-<Project Sdk="Assimalign.Cohesion.Sdk.Web/10.0.0-preview.1.local">
+<Project Sdk="Assimalign.Cohesion.Sdk.Web">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>$(TargetFrameworkForApplications)</TargetFramework>
@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\build\Assimalign.Cohesion.Viu.DevServer.targets" Pack="true" PackagePath="build\Assimalign.Cohesion.Viu.DevServer.targets" />
+    <None Include="..\build\Assimalign.Cohesion.Viu.DevServer.targets" Pack="true" PackagePath="build/Assimalign.Cohesion.Viu.DevServer.targets" />
     <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 
@@ -40,7 +40,7 @@
   <Target Name="AddDevServerToolsToPackage" DependsOnTargets="PublishDevServerTools">
     <ItemGroup>
       <TfmSpecificPackageFile Include="$(ToolsPublishDirectory)**\*">
-        <PackagePath>tools\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+        <PackagePath>tools/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>

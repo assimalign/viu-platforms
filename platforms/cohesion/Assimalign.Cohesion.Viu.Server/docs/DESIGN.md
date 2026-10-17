@@ -11,8 +11,9 @@ verbs remain available for non-hosting pipeline implementations.
 This external platform package intentionally composes `Web.Hosting`; Cohesion's hosting-isolation
 rule constrains feature projects inside the Cohesion repository, while this Server package is the
 cross-repository host bridge. It therefore consumes
-`Assimalign.Cohesion.Sdk.Web/10.0.0-preview.1.local` and its App/App.Web shared frameworks rather than direct
-Cohesion Web library packages. Phase 6 adds the explicit Hosting application/lifecycle linkage,
+`Assimalign.Cohesion.Sdk.Web` and its App/App.Web shared frameworks rather than direct Cohesion Web
+library packages. `Assimalign.Cohesion.FileSystem.Globbing` is the one direct Cohesion package: it is
+not an App or App.Web framework member, and the static-asset catalog matches globs with it. Phase 6 adds the explicit Hosting application/lifecycle linkage,
 while listener ownership and process lifetime remain with the Cohesion Web host.
 
 The package's nuspec carries framework references for `Assimalign.Cohesion.App` and

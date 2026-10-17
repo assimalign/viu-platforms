@@ -42,19 +42,48 @@ public static class ViuApplicationBuilderExtensions
         /// An optional action that configures hydration and the DOM mount selector.
         /// </param>
         /// <returns>The host-neutral application builder.</returns>
+        /// <remarks>
+        /// The browser options are one singleton instance in <see cref="ViuApplicationBuilder.Services"/>.
+        /// Repeated calls configure that same instance, so a later call changes only the values it
+        /// sets. The runtime reads the options when the application is built.
+        /// </remarks>
         [SupportedOSPlatform("browser")]
         public ViuApplicationBuilder ConfigureBrowser(
             Action<BrowserApplicationOptions>? configure = null)
         {
             ArgumentNullException.ThrowIfNull(builder);
 
-            var browserOptions = new BrowserApplicationOptions();
+            BrowserApplicationOptions browserOptions = GetOrAddBrowserOptions(builder.Services);
             configure?.Invoke(browserOptions);
+            ArgumentException.ThrowIfNullOrEmpty(browserOptions.MountTargetSelector);
 
-            return builder.ConfigureHost(
-                new BrowserViuApplicationHostFactory(
-                    browserOptions.Hydrate,
-                    browserOptions.MountTargetSelector));
+            return builder.ConfigureHost(BrowserViuApplicationHostFactory.Instance);
         }
+    }
+
+    private static BrowserApplicationOptions GetOrAddBrowserOptions(IServiceProviderBuilder services)
+    {
+        IServiceContainer container = services.Container;
+        for (int index = container.Count - 1; index >= 0; index--)
+        {
+            ServiceDescriptor descriptor = container[index];
+            if (descriptor.ServiceType != typeof(BrowserApplicationOptions))
+            {
+                continue;
+            }
+
+            // The last registration is the one the runtime resolves; configure it only when it
+            // is an instance this call can mutate.
+            if (descriptor.ImplementationInstance is BrowserApplicationOptions registeredOptions)
+            {
+                return registeredOptions;
+            }
+
+            break;
+        }
+
+        BrowserApplicationOptions browserOptions = new();
+        services.Add(ServiceDescriptor.Singleton(browserOptions));
+        return browserOptions;
     }
 }

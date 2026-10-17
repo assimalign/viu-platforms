@@ -1,34 +1,43 @@
 <Project>
   <PropertyGroup>
-    <_CohesionSiblingFeed>$(ViuPlatformsRepositoryDirectory)..\cohesion\_out\packages</_CohesionSiblingFeed>
-    <RestoreAdditionalProjectSources Condition="Exists('$(_CohesionSiblingFeed)')">$(RestoreAdditionalProjectSources);$(_CohesionSiblingFeed)</RestoreAdditionalProjectSources>
-    <CohesionSiblingPackageVersion Condition="Exists('$(_CohesionSiblingFeed)') and '$(CohesionSiblingPackageVersion)' == ''">10.0.0-preview.1.local</CohesionSiblingPackageVersion>
-    <CohesionVersion>[10.0.0-preview.1, )</CohesionVersion>
-    <CohesionVersion Condition="Exists('$(_CohesionSiblingFeed)') and '$(CohesionSiblingPackageVersion)' != ''">[$(CohesionSiblingPackageVersion)]</CohesionVersion>
+    <!--
+      global.json is the one Cohesion pin. Its msbuild-sdks entries select the SDK and framework
+      packs, and this reads the same entry so every library reference restores the identical build.
+      Move the pin by editing global.json alone, to a CI build (10.0.0-preview.0.ci.N for main,
+      10.0.0-preview.0.pr.<pr>.N for a cohesion pull request) or a release.
+    -->
+    <_ViuPlatformsGlobalJson>$([System.IO.File]::ReadAllText('$(ViuPlatformsRepositoryDirectory)global.json'))</_ViuPlatformsGlobalJson>
+    <CohesionPackageVersion>$([System.Text.RegularExpressions.Regex]::Replace($(_ViuPlatformsGlobalJson), '(?s)^.*"Assimalign\.Cohesion\.Sdk"\s*:\s*"([^"]+)".*$', '$1'))</CohesionPackageVersion>
     <ViuVersion>10.0.0-preview.1</ViuVersion>
   </PropertyGroup>
+
+  <Target Name="_ValidateCohesionPackageVersion" BeforeTargets="CollectPackageReferences;_CheckForInvalidConfigurationAndPlatform">
+    <Error Condition="$(CohesionPackageVersion.Contains('{'))"
+           Text="global.json must pin Assimalign.Cohesion.Sdk in its msbuild-sdks block; the Cohesion library references read that pin." />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="@(ViuPlatformPackageReference)" />
     <ViuPlatformPackageReference Remove="@(ViuPlatformPackageReference)" />
-    <PackageReference Update="Assimalign.Cohesion.Core" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Content" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Content.Text" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.ApplicationModel" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Web.ApplicationModel" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Hosting.Resources" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Web.Testing" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Configuration" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Content.Markdown" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.DependencyInjection" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Hosting" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.FileSystem" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.FileSystem.Globbing" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.FileSystem.Physical" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Http" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Web" Version="$(CohesionVersion)" />
-    <PackageReference Update="Assimalign.Cohesion.Web.Server" Version="$(CohesionVersion)" />
+    <PackageReference Update="Assimalign.Cohesion.Core" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Content" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Content.Text" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.ApplicationModel" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Web.ApplicationModel" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Hosting.Resources" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Web.Testing" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Configuration" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Content.Markdown" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.DependencyInjection" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Hosting" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.FileSystem" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.FileSystem.Globbing" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.FileSystem.Physical" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Http" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Web" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.Web.Server" Version="[$(CohesionPackageVersion)]" />
     <PackageReference Update="Assimalign.Viu.Browser" Version="$(ViuVersion)" />
+    <PackageReference Update="Assimalign.Viu.Browser.Router" Version="$(ViuVersion)" />
     <PackageReference Update="Assimalign.Viu.Components" Version="$(ViuVersion)" />
     <PackageReference Update="Assimalign.Viu.Core" Version="$(ViuVersion)" />
     <PackageReference Update="Assimalign.Viu.Reactivity" Version="$(ViuVersion)" />

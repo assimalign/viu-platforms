@@ -18,7 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\docs\OVERVIEW.md" Pack="true" PackagePath="README.md" />
-    <None Include="..\build\*" Pack="true" PackagePath="build\" />
-    <None Include="..\generator\bin\$(Configuration)\netstandard2.0\Assimalign.Cohesion.Viu.Markdown.Generator.dll" Pack="true" PackagePath="analyzers\dotnet\cs\" Visible="false" />
+    <None Include="..\build\*" Pack="true" PackagePath="build/" />
+    <None Include="..\generator\bin\$(Configuration)\netstandard2.0\Assimalign.Cohesion.Viu.Markdown.Generator.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false" />
   </ItemGroup>
 </Project>

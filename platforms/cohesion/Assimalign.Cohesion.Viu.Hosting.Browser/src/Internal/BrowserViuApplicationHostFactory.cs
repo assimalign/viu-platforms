@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.Versioning;
 
+using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Viu;
 using Assimalign.Viu.Browser;
 
@@ -9,21 +10,24 @@ namespace Assimalign.Cohesion.Viu.Hosting.Browser;
 [SupportedOSPlatform("browser")]
 internal sealed class BrowserViuApplicationHostFactory : IViuApplicationHostFactory
 {
-    private readonly bool _hydrate;
-    private readonly string _mountTargetSelector;
+    public static BrowserViuApplicationHostFactory Instance { get; } = new();
 
-    public BrowserViuApplicationHostFactory(
-        bool hydrate,
-        string mountTargetSelector)
+    private BrowserViuApplicationHostFactory()
     {
-        ArgumentException.ThrowIfNullOrEmpty(mountTargetSelector);
-        _hydrate = hydrate;
-        _mountTargetSelector = mountTargetSelector;
     }
 
     public IApplication CreateApplication(ApplicationOptions applicationOptions)
     {
         ArgumentNullException.ThrowIfNull(applicationOptions);
+
+        // ConfigureBrowser registers one options instance in the application's container; the
+        // values are copied here, so mutating that instance after Build has no effect.
+        BrowserApplicationOptions browserOptions =
+            applicationOptions.Services?.GetService<BrowserApplicationOptions>()
+            ?? new BrowserApplicationOptions();
+        bool hydrate = browserOptions.Hydrate;
+        string mountTargetSelector = browserOptions.MountTargetSelector;
+        ArgumentException.ThrowIfNullOrEmpty(mountTargetSelector);
 
         var builder = new BrowserApplicationBuilder();
         builder.ConfigureApplication(options =>
@@ -39,8 +43,8 @@ internal sealed class BrowserViuApplicationHostFactory : IViuApplicationHostFact
         });
         builder.ConfigureBrowser(options =>
         {
-            options.Hydrate = _hydrate;
-            options.MountTargetSelector = _mountTargetSelector;
+            options.Hydrate = hydrate;
+            options.MountTargetSelector = mountTargetSelector;
         });
 
         return builder.Build();

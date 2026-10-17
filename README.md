@@ -11,6 +11,8 @@ composition remains independent of these packages.
   `ViuApplicationBuilder`, backed by Cohesion dependency injection, configuration, and hosting.
 - `Assimalign.Cohesion.Viu.Hosting.Browser` — the explicit browser host registration that mounts
   through `Assimalign.Viu.Browser`.
+- `Assimalign.Cohesion.Viu.Routing` — opt-in `AddRouting`/`AddRoutes` service registration and
+  `UseRouter` lifetime installation for the Viu router.
 - `Assimalign.Cohesion.Viu.Server` — Cohesion Web middleware for static-web-assets manifests, SPA
   fallback, browser refresh, MIME mapping, cross-origin isolation, and Viu server rendering.
 - `Assimalign.Cohesion.Viu.DevServer` — a packaged Cohesion development server and the MSBuild
@@ -20,14 +22,16 @@ composition remains independent of these packages.
   node rendering, page and navigation components, and optional hosting registration.
 - `Assimalign.Cohesion.Viu.ApplicationModel` — typed site validation and descriptors layered over the Web planner.
 
-All seven packages are versioned together. The current platform version is `10.0.0-preview.1`; it
-composes Cohesion `10.0.0-preview.1.local` and Viu `10.0.0-preview.1`.
+All eight packages are versioned together. The current platform version is `10.0.0-preview.1`; it
+composes the Cohesion build [`global.json`](global.json) pins (see
+[Getting the Assimalign.Cohesion packages](#getting-the-assimaligncohesion-packages)) and Viu
+`10.0.0-preview.1`.
 
 ## Application hosting
 
 In an `Assimalign.Viu.Sdk.Browser` application, select the browser runtime explicitly before
 building. The project must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the
-Cohesion `10.0.0-preview.1.local` hosting surface remains preview-annotated:
+Cohesion 10.0 preview hosting surface remains preview-annotated:
 
 ```csharp
 using Assimalign.Cohesion.Viu.Hosting;
@@ -41,26 +45,29 @@ ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 builder.Configuration["features:greeting"] = "enabled";
 builder.Services.AddSingleton<IGreetingService>(
     _ => new GreetingService());
+builder.Services.AddComponents(GeneratedViuComponents.Register);
 
 builder.ConfigureApplication(options =>
-{
-    ComponentFactory components = new();
-    GeneratedViuComponents.Register(components);
-
-    options.Components = components;
     options.RootComponent = new ComponentNode(
-        ComponentReference.ForName("App"));
-});
+        ComponentReference.ForName("App")));
 builder.ConfigureBrowser();
 
 ViuApplication application = builder.Build();
 await application.RunAsync();
 ```
 
-Service registrations on this WebAssembly path must use an existing instance or an explicit
-factory. Type-based activation, assembly scanning, configuration binding, and other
-reflection-driven composition are intentionally rejected or excluded. The built provider is
-supplied as Viu's `context.Services`; Cohesion configuration is registered in that provider.
+Components are contributed through `builder.Services`; `Build()` composes every contribution into
+the application's component factory, independent of `ConfigureApplication` order. Unset state and
+directive resolvers come from services, and unset warning and error handlers write to standard
+error. Routing is registered the same way through `Assimalign.Cohesion.Viu.Routing`:
+`builder.Services.AddRouting(...)` before building and `application.UseRouter()` after.
+
+Services may be registered as instances, factories, or implementation types such as
+`builder.Services.AddSingleton<IClock, SystemClock>()`. Implementation types are activated by the
+Cohesion container, whose type-based overloads preserve public constructors for trimming and which
+invokes constructors through reflection, never emitted IL, on WebAssembly. Assembly scanning,
+configuration binding, and module initializers remain excluded. The built provider is supplied as
+Viu's `context.Services`; Cohesion configuration is registered in that provider.
 
 `Assimalign.Cohesion.Viu.Hosting` owns the provider and configuration manager it builds. User
 services start before the selected Viu runtime and stop after it. Browser cancellation follows the
@@ -88,7 +95,9 @@ var routes = MarkdownRoutes.Create(GeneratedMarkdownContent.Catalog,
     });
 ```
 
-Compose the router over `routes` in application services. The shell supplies `depth = 1` to its nested RouterView.
+Register the router with `builder.Services.AddRouting()` and `builder.Services.AddRoutes(_ => routes)`
+from `Assimalign.Cohesion.Viu.Routing`, then call `application.UseRouter()` after building. The
+shell supplies `depth = 1` to its nested RouterView.
 `MarkdownPageView` renders immutable Viu nodes, including `RouterLink` components for known relative
 Markdown links. No anchor-click script is needed. Web history supports ordinary in-page fragments;
 the host owns its scroll policy. A file-system source and awaited server prefetch provide the SSR
@@ -153,9 +162,10 @@ generated-component registration, and the Cohesion development server.
 
 ## Local build
 
-`NuGet.config` restores this repository's packages plus the sibling Cohesion and Viu package
-outputs. Package versions are applied with `PackageReference Update` items in
-`Directory.Build.targets`; this repository does not use NuGet central package management.
+`NuGet.config` restores Cohesion from the Assimalign GitHub Packages feed, Viu from the sibling
+`../viu/_out/packages` output, and this repository's own packages from `_out/packages`. Package
+versions are applied with `PackageReference Update` items in `Directory.Build.targets`; this
+repository does not use NuGet central package management.
 
 ```powershell
 pwsh scripts/Install-Local.ps1 -Configuration Release
@@ -168,28 +178,70 @@ preserved 45-page route/asset baseline:
 pwsh scripts/Verify-MarkdownDocs.ps1
 ```
 
-The script restores, builds, tests, and packs all seven packages into `_out/packages`. Shipping
+`Install-Local.ps1` restores, builds, tests, and packs all eight packages into `_out/packages`. Shipping
 libraries target `net10.0`, use explicit registration, and enable trimming/AOT compatibility
 analysis. The Server package carries Cohesion's App.Web framework reference; Hosting.Browser has
 only its host-neutral Hosting dependency and the Viu Browser runtime dependency.
 
 ## Getting the Assimalign.Cohesion packages
 
-This tree tracks unreleased Cohesion `10.0.0-preview.1` and Viu `10.0.0-preview.1` sources. Published
-package identities are immutable. With `../cohesion/_out/packages` present, ordinary Cohesion
-references default to exactly `10.0.0-preview.1.local`; override with
-`-p:CohesionSiblingPackageVersion=<identity>`. Without it they use the release floor
-`[10.0.0-preview.1, )`. The project SDK pins in `global.json` and DevServer also use `.local`:
-MSBuild SDK resolution reads `NuGet.config` before restore properties. A complete local feed is
-required; the partial canonical SDK/framework feed cannot replace the `.local` library closure.
-The isolated cache is `.nuget/packages`.
+Cohesion comes from the Assimalign GitHub Packages feed, never from a sibling checkout. The one pin
+is the `Assimalign.Cohesion.Sdk` entry in [`global.json`](global.json)'s `msbuild-sdks` block:
+both Cohesion SDK entries must carry the same version (the Cohesion SDK enforces this as
+COHSDK002), and [`Build.References.Packages.targets`](build/Targets/Build.References.Packages.targets)
+reads that entry, so every Cohesion library reference restores exactly the same build as the SDK
+and framework packs. To move to another Cohesion build, edit the two `global.json` entries and
+nothing else:
 
-Use the prepacked sibling feeds in `cohesion`, `viu`, and `cohesion-platforms`; the latter supplies
-Kubernetes/Docker/Containers at `10.0.0-preview.1`. Run this repository's `Install-Local.ps1` to pack
-all seven hosting-family packages at `10.0.0-preview.1`. CI recreates Cohesion and Viu sibling feeds
-from `COHESION_SIBLING_REF` and `VIU_SIBLING_REF` repository variables (prefer immutable commits).
-It replaces the root NuGet config so SDK and package resolution use those same feeds. Viu's
-beta.12 Browser SDK was absent from GitHub Packages when this integration was prepared.
+- `10.0.0-preview.0.ci.<run>` — a build of cohesion `main`, published by cohesion's
+  `ci-packages.yml` for every merge. The current pin is `10.0.0-preview.0.ci.21` (cohesion
+  `4c52f8c`).
+- `10.0.0-preview.0.pr.<pr>.<run>` — a build of an open cohesion pull request, for integrating
+  unreleased Cohesion work without packing it locally.
+- `10.0.0-preview.1` and later — releases.
+
+A CI pin is temporary: cohesion deletes a pull request's builds when it closes and keeps only the
+newest 20 `main` builds, so move the pin at least every few days and pin a release before tagging a
+release here. GitHub Packages requires a token with `read:packages` even for these public packages.
+Never write it to `NuGet.config`; supply it from the environment:
+
+```powershell
+$env:NuGetPackageSourceCredentials_assimalign = "Username=<github-user>;Password=$(gh auth token);ValidAuthenticationTypes=Basic"
+```
+
+CI sets the same variable from the workflow token. The isolated package cache is
+`.nuget/packages`.
+
+Viu has no packages on a feed yet, so it still comes from the sibling `viu` checkout:
+`../viu/scripts/Install-Local.ps1` locally, and in CI `.github/scripts/Pack-ViuSibling.ps1` at the
+`VIU_SIBLING_REF` repository variable (prefer an immutable commit). Once viu's own CI package
+channel publishes, pin a Viu CI build the same way and remove the sibling step from
+[`.github/actions/setup`](.github/actions/setup/action.yml).
+
+## CI packages
+
+[`.github/workflows/ci-packages.yml`](.github/workflows/ci-packages.yml) publishes all eight
+packages to the Assimalign GitHub Packages feed for every push to `main` and every commit to an open
+same-repository pull request, so consumers such as `viu-examples` can pin a build instead of packing
+this repository. The model is cohesion's:
+
+- **Version shape.** `Get-ViuPlatformsCiPackageVersion` in
+  [`ViuPlatformsPackaging.psm1`](scripts/modules/ViuPlatformsPackaging.psm1) extends the
+  predecessor of `ViuPlatformsVersion`, so every CI build sorts below the release it builds toward:
+  `10.0.0-preview.1` gives `10.0.0-preview.0.ci.<run>` for `main` and
+  `10.0.0-preview.0.pr.<pr>.<run>` for a pull request.
+- **What ships.** [`scripts/Pack-Release.ps1`](scripts/Pack-Release.ps1) packs exactly the
+  inventory in `ViuPlatformsPackaging.psm1`, the same one `release.yml` and `Install-Local.ps1`
+  use, and the solution's tests run against that build before anything is pushed. A CI build
+  carries the Cohesion and Viu pins of its commit into its package dependencies.
+- **Retention.** [`.github/workflows/ci-packages-prune.yml`](.github/workflows/ci-packages-prune.yml)
+  deletes a pull request's builds when it closes and every `main` build outside the newest 20,
+  and nothing else; a release version is never selected.
+  [`scripts/tests/Test-CiPackages.ps1`](scripts/tests/Test-CiPackages.ps1) pins both rules.
+- **Permissions.** Deleting through `GITHUB_TOKEN` needs the Admin role on each package, which
+  GitHub grants to the repository whose workflow published it. If deletions are refused (HTTP
+  403), give `assimalign/viu-platforms` the **Admin** role under the package's **Manage Actions
+  access**. `workflow_dispatch` on the prune workflow defaults to a dry run.
 
 ## A deployable Viu Web site
 

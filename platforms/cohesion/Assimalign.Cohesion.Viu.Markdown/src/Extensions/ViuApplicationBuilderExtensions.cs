@@ -2,7 +2,6 @@ using System;
 
 using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Cohesion.Viu.Hosting;
-using Assimalign.Viu.Components;
 
 namespace Assimalign.Cohesion.Viu.Markdown;
 
@@ -13,6 +12,10 @@ public static class ViuApplicationBuilderExtensions
     /// <param name="builder">The mutable application composition.</param>
     /// <param name="configure">Supplies the catalog, source or source factory, and optional rendering settings.</param>
     /// <returns>The same builder after registration; building remains the caller's responsibility.</returns>
+    /// <remarks>
+    /// Components are contributed through <c>builder.Services.AddComponents</c>, so they reach the
+    /// application's component factory regardless of the order of <c>ConfigureApplication</c> calls.
+    /// </remarks>
     public static ViuApplicationBuilder AddMarkdownContent(this ViuApplicationBuilder builder,
         Action<MarkdownContentOptions> configure)
     {
@@ -27,16 +30,9 @@ public static class ViuApplicationBuilderExtensions
             throw new InvalidOperationException("Supply exactly one Markdown source instance or source factory.");
         }
         ArgumentNullException.ThrowIfNull(options.RenderOptions);
-        ComponentFactory components = options.Components
-            ?? builder.ApplicationOptions.Components as ComponentFactory
-            ?? throw new InvalidOperationException("Supply the application's concrete ComponentFactory for Markdown registration.");
         MarkdownVirtualNodeRenderer renderer = new(catalog, options.RenderOptions);
         MarkdownHtmlRenderer htmlRenderer = new(catalog, options.RenderOptions);
-        builder.ConfigureApplication(application =>
-        {
-            MarkdownComponents.Register(components);
-            application.Components = components;
-        });
+        builder.Services.AddComponents(MarkdownComponents.Register);
         builder.Services.Add(ServiceDescriptor.Singleton(catalog));
         builder.Services.Add(ServiceDescriptor.Singleton(renderer));
         builder.Services.Add(ServiceDescriptor.Singleton(htmlRenderer));

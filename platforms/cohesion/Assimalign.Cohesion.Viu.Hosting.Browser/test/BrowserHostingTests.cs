@@ -1,10 +1,12 @@
 using System;
+using System.Linq;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 
 using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Cohesion.Hosting;
 using Assimalign.Viu;
+using Assimalign.Viu.Browser;
 using Assimalign.Viu.Components;
 
 using Shouldly;
@@ -55,6 +57,46 @@ public sealed class BrowserHostingTests
 
         Should.Throw<ArgumentException>(() => builder.ConfigureBrowser(options =>
             options.MountTargetSelector = string.Empty));
+    }
+
+    [Fact]
+    [SupportedOSPlatform("browser")]
+    public async Task RepeatedConfigureBrowserCallsConfigureOneRetainedOptionsInstance()
+    {
+        ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
+        builder.ConfigureApplication(options => options.RootComponent = new TextNode("root"));
+
+        builder.ConfigureBrowser(options => options.MountTargetSelector = "#root");
+        builder.ConfigureBrowser(options => options.Hydrate = true);
+        builder.ConfigureBrowser();
+
+        ViuApplication application = builder.Build();
+
+        BrowserApplicationOptions options = application.Context.Services
+            .GetRequiredService<BrowserApplicationOptions>();
+        options.MountTargetSelector.ShouldBe("#root");
+        options.Hydrate.ShouldBeTrue();
+        builder.Services.Container
+            .Count(descriptor => descriptor.ServiceType == typeof(BrowserApplicationOptions))
+            .ShouldBe(1);
+
+        await ((IAsyncDisposable)application).DisposeAsync();
+    }
+
+    [Fact]
+    [SupportedOSPlatform("browser")]
+    public void ConfigureBrowserConfiguresAnOptionsInstanceAlreadyInServices()
+    {
+        var registeredOptions = new BrowserApplicationOptions();
+        ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
+        builder.Services.AddSingleton(registeredOptions);
+
+        builder.ConfigureBrowser(options => options.MountTargetSelector = "#registered");
+
+        registeredOptions.MountTargetSelector.ShouldBe("#registered");
+        builder.Services.Container
+            .Count(descriptor => descriptor.ServiceType == typeof(BrowserApplicationOptions))
+            .ShouldBe(1);
     }
 
     private sealed class BrowserApplicationService
