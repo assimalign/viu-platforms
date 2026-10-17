@@ -1,11 +1,16 @@
 # Official Viu Platforms release pipeline, mirroring the assimalign/cohesion release model at
 # this repository's scale.
 #
-# A published GitHub Release is the only package-publication trigger. The release tag must match
-# the complete centrally declared ViuPlatformsVersion (build/Targets/Build.Version.props),
+# A published GitHub Release is the only release-version publication trigger. The release tag must
+# match the complete centrally declared ViuPlatformsVersion (build/Targets/Build.Version.props),
 # including the prerelease suffix. The validated set is staged in GitHub Packages; nuget.org
 # promotion is deliberately not wired yet — beta releases stop at the GitHub Packages feed, the
-# same policy the sibling repositories apply to this channel.
+# same policy the sibling repositories apply to this channel. .github/workflows/ci-packages.yml
+# separately publishes CI builds, which never carry a release version.
+#
+# A release restores Cohesion and Viu at whatever global.json pins. Pin released Cohesion and Viu
+# versions before tagging: a CI build pin is pruned from the feed within days, and a package that
+# depends on it stops restoring.
 #
 # Every `uses:` is pinned to a commit SHA with a trailing version comment, matching the sibling
 # repositories' supply-chain rule.
@@ -65,15 +70,8 @@ jobs:
         env:
           VIU_PLATFORMS_RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          [xml]$versionProps = Get-Content -LiteralPath 'build/Targets/Build.Version.props' -Raw
-          $propertyGroup = $versionProps.Project.PropertyGroup | Select-Object -First 1
-          $prefix = [string]$propertyGroup.ViuPlatformsVersionPrefix
-          $suffix = [string]$propertyGroup.ViuPlatformsVersionSuffix
-          if (-not $prefix) {
-            throw 'ViuPlatformsVersionPrefix was not found in build/Targets/Build.Version.props.'
-          }
-
-          $canonicalVersion = if ($suffix) { "$prefix-$suffix" } else { $prefix }
+          Import-Module ./scripts/modules/ViuPlatformsPackaging.psm1 -Force
+          $canonicalVersion = Get-ViuPlatformsVersion -RepositoryDirectory (Get-Location).Path
           $tagMatch = [System.Text.RegularExpressions.Regex]::Match(
             $env:VIU_PLATFORMS_RELEASE_TAG,
             '^v(?<version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?)$',
@@ -99,8 +97,11 @@ jobs:
     permissions:
       contents: read
       packages: read
+    env:
+      NuGetPackageSourceCredentials_assimalign: Username=${{ github.actor }};Password=${{ github.token }};ValidAuthenticationTypes=Basic
     outputs:
       version: ${{ needs.prepare.outputs.version }}
+      package-count: ${{ steps.package-count.outputs.count }}
     steps:
       - name: Checkout release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -109,76 +110,57 @@ jobs:
           persist-credentials: false
           ref: ${{ needs.prepare.outputs.commit }}
 
-      - name: Install .NET
-        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+      - name: Set up CI
+        uses: ./.github/actions/setup
         with:
-          global-json-file: global.json
-
-      # MSBuild resolves project SDKs (Assimalign.Cohesion.Sdk.Web) through the default NuGet
-      # settings hierarchy on every dotnet invocation — --configfile only reaches the restore
-      # command — so CI replaces the repo NuGet.config (machine-local feeds) with the CI one.
-      - name: Use CI NuGet configuration
-        shell: pwsh
-        run: Copy-Item .github/NuGet.ci.config NuGet.config -Force
+          viu-sibling-ref: ${{ vars.VIU_SIBLING_REF }}
 
       - name: Restore
         shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet restore Assimalign.Viu.Platforms.slnx
 
       - name: Build
         shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet build Assimalign.Viu.Platforms.slnx --configuration Release --no-restore
 
       - name: Test
         shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet test Assimalign.Viu.Platforms.slnx --configuration Release --no-build
 
-      - name: Pack
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
-        run: |
-          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Markdown/src/Assimalign.Cohesion.Viu.Markdown.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Hosting.Browser/src/Assimalign.Cohesion.Viu.Hosting.Browser.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Routing/src/Assimalign.Cohesion.Viu.Routing.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj --configuration Release --no-build
-          dotnet pack platforms/cohesion/Assimalign.Cohesion.Viu.Templates/Assimalign.Cohesion.Viu.Templates.csproj --configuration Release --no-build
-
-      - name: Verify packed set
+      - name: Pack release
         shell: pwsh
         env:
           VIU_PLATFORMS_PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
+          VIU_PLATFORMS_RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+        run: >-
+          ./scripts/Pack-Release.ps1
+          -Version $env:VIU_PLATFORMS_PACKAGE_VERSION
+          -RepositoryCommit $env:VIU_PLATFORMS_RELEASE_COMMIT
+
+      # The publish job only downloads the artifact, so the producer publishes the count it
+      # asserts. Pack-Release.ps1 writes package-order.txt from the inventory it validated.
+      - name: Record package count
+        id: package-count
+        shell: pwsh
         run: |
-          $expectedPackages = @(
-            "Assimalign.Cohesion.Viu.Hosting.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Cohesion.Viu.Markdown.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Cohesion.Viu.Hosting.Browser.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Cohesion.Viu.Routing.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Cohesion.Viu.Server.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Cohesion.Viu.DevServer.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg",
-            "Assimalign.Cohesion.Viu.Templates.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg")
-          foreach ($expectedPackage in $expectedPackages) {
-            $packagePath = Join-Path '_out/packages' $expectedPackage
-            if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
-              throw "The pack step did not produce $expectedPackage."
-            }
+          $packageCount = @(Get-Content -LiteralPath '_out/release/packages/package-order.txt').Count
+          if ($packageCount -lt 1) {
+            throw 'Pack-Release.ps1 produced no packages.'
           }
 
-          Write-Host "All $($expectedPackages.Count) release packages are present."
+          "count=$packageCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release package count: $packageCount"
+
+      - name: Verify package checksums
+        shell: bash
+        working-directory: _out/release/packages
+        run: sha256sum --check checksums.sha256
 
       - name: Upload package release artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Assimalign.Viu.Platforms.Packages
-          path: _out/packages/*.nupkg
+          path: _out/release/packages
           if-no-files-found: error
           retention-days: 14
 
@@ -200,28 +182,39 @@ jobs:
           name: Assimalign.Viu.Platforms.Packages
           path: _release/packages
 
+      - name: Verify package checksums
+        shell: bash
+        working-directory: _release/packages
+        run: sha256sum --check checksums.sha256
+
       - name: Stage validated packages
         shell: pwsh
         env:
           GITHUB_PACKAGES_TOKEN: ${{ github.token }}
           VIU_PLATFORMS_PACKAGE_VERSION: ${{ needs.build-test-pack.outputs.version }}
+          VIU_PLATFORMS_PACKAGE_COUNT: ${{ needs.build-test-pack.outputs.package-count }}
         run: |
-          $packageFiles = @(Get-ChildItem -LiteralPath '_release/packages' -Filter '*.nupkg' |
-            Where-Object { $_.Name -like "*.$env:VIU_PLATFORMS_PACKAGE_VERSION.nupkg" })
-          if ($packageFiles.Count -ne 6) {
-            throw "Expected 6 release packages at $env:VIU_PLATFORMS_PACKAGE_VERSION, found $($packageFiles.Count)."
+          $packageDirectory = '_release/packages'
+          $packageFiles = @(Get-Content -LiteralPath "$packageDirectory/package-order.txt")
+          if ($packageFiles.Count -ne [int] $env:VIU_PLATFORMS_PACKAGE_COUNT) {
+            throw "Expected $($env:VIU_PLATFORMS_PACKAGE_COUNT) release packages, found $($packageFiles.Count)."
           }
 
           foreach ($packageFile in $packageFiles) {
+            $packagePath = Join-Path $packageDirectory $packageFile
+            if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
+              throw "The release artifact is missing $packageFile."
+            }
+
             # --skip-duplicate: a release version is immutable; re-running the pipeline for the
             # same tag must be a no-op on the feed, never a replacement.
-            & dotnet nuget push $packageFile.FullName `
+            & dotnet nuget push $packagePath `
               --source 'https://nuget.pkg.github.com/assimalign/index.json' `
               --api-key $env:GITHUB_PACKAGES_TOKEN `
               --no-symbols `
               --skip-duplicate
             if ($LASTEXITCODE -ne 0) {
-              throw "Publishing $($packageFile.Name) to GitHub Packages failed with exit code $LASTEXITCODE."
+              throw "Publishing $packageFile to GitHub Packages failed with exit code $LASTEXITCODE."
             }
           }
 

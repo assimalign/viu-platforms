@@ -1,8 +1,8 @@
 # Assimalign.Cohesion.Viu.ApplicationModel
 
 Version `10.0.0-preview.1`. This apphost-side package validates the Viu facts on a Cohesion Web
-manifest and exposes a typed site descriptor. It layers on Cohesion `10.0.0-preview.1`, consumed
-as `10.0.0-preview.1.local` in the sibling-feed loop. It has no Viu runtime or Web hosting dependency.
+manifest and exposes a typed site descriptor. It layers on the Cohesion build the repository's
+`global.json` pins. It has no Viu runtime or Web hosting dependency.
 
 ## Usage
 

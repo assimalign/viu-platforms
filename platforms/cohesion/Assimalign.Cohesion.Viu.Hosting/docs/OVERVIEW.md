@@ -66,7 +66,7 @@ default to writing `Viu warning: ...` and `Viu error (source): ...` lines to sta
 Assigned values always win.
 
 Consumers must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the composed
-Cohesion `10.0.0-preview.1.local` hosting surface remains preview-annotated.
+Cohesion 10.0 preview hosting surface remains preview-annotated.
 
 The built Cohesion provider replaces any manually assigned `ApplicationOptions.Services`. Viu
 component activation therefore sees the same provider as host services. `IConfiguration`,

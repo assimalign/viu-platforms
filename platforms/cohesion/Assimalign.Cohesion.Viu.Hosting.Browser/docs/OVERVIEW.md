@@ -34,7 +34,7 @@ await application.RunAsync();
 ```
 
 The consuming project must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` for the
-preview-annotated Cohesion `10.0.0-preview.1.local` hosting APIs.
+preview-annotated Cohesion 10.0 preview hosting APIs.
 
 `ConfigureBrowser(...)` installs a host factory explicitly; it does not scan assemblies or use a
 module initializer. Its settings live in one `BrowserApplicationOptions` singleton in

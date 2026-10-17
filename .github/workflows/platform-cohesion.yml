@@ -2,10 +2,11 @@
 # per-area workflow model (assimalign/cohesion resource-web.yml): every push that touches the
 # area builds and tests the whole platform solution.
 #
-# Restore uses sibling feeds reconstructed from pinned repository variables while these lines
-# are unreleased. Project-SDK resolution also consumes the replacement root NuGet.config.
-# Cross-repo Assimalign packages restore with PACKAGES_READ_TOKEN when the organization has one
-# configured, falling back to the workflow token.
+# Cohesion restores from the Assimalign GitHub Packages feed at the build global.json pins (a
+# cohesion ci-packages.yml build or a release). These packages are public, so the workflow token
+# with packages: read is the credential; NuGet reads it from NuGetPackageSourceCredentials_assimalign
+# and nothing is written to a config file. Viu still restores from a sibling pack at
+# VIU_SIBLING_REF; see .github/actions/setup.
 name: Platform - Cohesion
 
 on:
@@ -19,7 +20,7 @@ on:
       - 'NuGet.config'
       - 'scripts/**'
       - 'global.json'
-      - '.github/NuGet.ci.config'
+      - '.github/actions/**'
       - '.github/scripts/**'
       - '.github/workflows/platform-cohesion.yml'
   pull_request:
@@ -37,55 +38,31 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, windows-2025]
+    env:
+      NuGetPackageSourceCredentials_assimalign: Username=${{ github.actor }};Password=${{ github.token }};ValidAuthenticationTypes=Basic
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Install .NET
-        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+      - name: Set up CI
+        uses: ./.github/actions/setup
         with:
-          global-json-file: global.json
+          viu-sibling-ref: ${{ vars.VIU_SIBLING_REF }}
 
-      # MSBuild resolves project SDKs (Assimalign.Cohesion.Sdk.Web) through the default NuGet
-      # settings hierarchy on every dotnet invocation — --configfile only reaches the restore
-      # command — so CI replaces the repo NuGet.config (machine-local feeds) with the CI one.
-      - name: Use CI NuGet configuration
+      - name: Test CI package version and prune policy
         shell: pwsh
-        run: Copy-Item .github/NuGet.ci.config NuGet.config -Force
-
-      - name: Install WebAssembly workload
-        shell: pwsh
-        run: dotnet workload install wasm-tools
-
-      - name: Pack unreleased sibling packages
-        shell: pwsh
-        env:
-          COHESION_SIBLING_REF: ${{ vars.COHESION_SIBLING_REF }}
-          VIU_SIBLING_REF: ${{ vars.VIU_SIBLING_REF }}
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
-        run: |
-          if (-not $env:COHESION_SIBLING_REF -or -not $env:VIU_SIBLING_REF) {
-            throw 'Set COHESION_SIBLING_REF and VIU_SIBLING_REF repository variables to the source commits for the tracked unreleased package lines.'
-          }
-          ./.github/scripts/Pack-CohesionSibling.ps1 -Ref $env:COHESION_SIBLING_REF
-          ./.github/scripts/Pack-ViuSibling.ps1 -Ref $env:VIU_SIBLING_REF
+        run: ./scripts/tests/Test-CiPackages.ps1
 
       - name: Restore
         shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet restore Assimalign.Viu.Platforms.slnx
 
       - name: Build
         shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet build Assimalign.Viu.Platforms.slnx --configuration Release --no-restore
 
       - name: Test
         shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || github.token }}
         run: dotnet test Assimalign.Viu.Platforms.slnx --configuration Release --no-build

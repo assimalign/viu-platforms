@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Assimalign.Cohesion.Viu.Hosting\src\Assimalign.Cohesion.Viu.Hosting.csproj" />
+    <!-- Globbing is not an App or App.Web framework member, so the static-asset catalog references it directly. -->
+    <PackageReference Include="Assimalign.Cohesion.FileSystem.Globbing" />
     <PackageReference Include="Assimalign.Viu.ServerRenderer" />
   </ItemGroup>
 

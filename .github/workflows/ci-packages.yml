@@ -1,0 +1,271 @@
+# Continuous package channel for downstream integration work.
+#
+# Every push to main (each merged pull request) and every commit to an open same-repository pull
+# request packs the complete release set and stages it in the Assimalign GitHub Packages feed at a
+# unique CI version, so viu-examples and other consumers can pin an exact build of main, or of a
+# pull request still in review, instead of packing this repository from source. The model is
+# assimalign/cohesion's ci-packages.yml at this repository's scale.
+#
+# This workflow never publishes a canonical version; release versions stay with
+# .github/workflows/release.yml. .github/workflows/ci-packages-prune.yml deletes a pull request's
+# versions when it closes and keeps the newest 20 main builds.
+#
+# The version comes from Get-ViuPlatformsCiPackageVersion in
+# scripts/modules/ViuPlatformsPackaging.psm1. It extends the PREDECESSOR of the canonical
+# ViuPlatformsVersion, so every CI build sorts below the release it builds toward:
+#
+#     canonical 10.0.0-preview.1   ->  main: 10.0.0-preview.0.ci.<run>
+#                                      PR:   10.0.0-preview.0.pr.<pr>.<run>
+#
+# The set is the release's: Pack-Release.ps1 packs exactly the inventory, and the solution's tests
+# run against the same build before a single package is pushed. A CI build restores Cohesion and Viu
+# at whatever global.json pins, so it carries that pin into its package dependencies.
+#
+# Every `uses:` is pinned to a commit SHA with a trailing version comment.
+name: CI Packages
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '.claude/**'
+      - 'README.md'
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - '.claude/**'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: resolve CI package version
+    # Same-repository pull requests only. A fork's pull_request run and a Dependabot-triggered run
+    # both get a read-only token, so their push would fail after the full pack. Never trigger this
+    # workflow on pull_request_target, which grants packages:write to the code under review.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.actor != 'dependabot[bot]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      commit: ${{ steps.version.outputs.commit }}
+      version: ${{ steps.version.outputs.version }}
+      channel: ${{ steps.version.outputs.channel }}
+    steps:
+      # A pull request builds its head commit, not the synthetic refs/pull/N/merge commit, so the
+      # RepositoryCommit stamped into each package keeps pointing at real history.
+      - name: Checkout build commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      # The version derivation and its checks come from the commit this workflow file came from, so
+      # a branch cut before Get-ViuPlatformsCiPackageVersion existed still gets it. The canonical
+      # version still comes from the build commit's own Build.Version.props.
+      - name: Checkout workflow tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: _ci/tooling
+          sparse-checkout: |
+            scripts/modules
+            scripts/tests
+            platforms
+            build
+
+      - name: Test CI package version and prune policy
+        shell: pwsh
+        run: ./_ci/tooling/scripts/tests/Test-CiPackages.ps1
+
+      - name: Resolve CI package version
+        id: version
+        shell: pwsh
+        env:
+          VIU_PLATFORMS_EVENT_NAME: ${{ github.event_name }}
+          VIU_PLATFORMS_BUILD_NUMBER: ${{ github.run_number }}
+          VIU_PLATFORMS_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          Import-Module ./_ci/tooling/scripts/modules/ViuPlatformsPackaging.psm1 -Force
+
+          # The run number is shared by both channels, so main and pull request builds can never
+          # collide. A re-run attempt keeps its run number and so its version; the publish job
+          # handles that case.
+          $arguments = @{
+            Version     = Get-ViuPlatformsVersion -RepositoryDirectory (Get-Location).Path
+            BuildNumber = [int] $env:VIU_PLATFORMS_BUILD_NUMBER
+          }
+          if ($env:VIU_PLATFORMS_EVENT_NAME -eq 'pull_request') {
+            $arguments.PullRequestNumber = [int] $env:VIU_PLATFORMS_PULL_REQUEST_NUMBER
+          }
+
+          $ciVersion = Get-ViuPlatformsCiPackageVersion @arguments
+          $commit = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Resolving the checked-out commit failed.'
+          }
+
+          "commit=$commit" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$($ciVersion.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "channel=$($ciVersion.Channel)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Canonical version: $($ciVersion.CanonicalVersion)"
+          Write-Host "CI package version: $($ciVersion.Version) ($($ciVersion.Channel) channel, commit $commit)"
+
+  pack-packages:
+    name: pack and test all NuGet packages
+    needs: prepare
+    runs-on: ubuntu-24.04
+    # No measured run exists yet. The Linux build-and-test job measured 21m50s (run on 2026-09-21)
+    # while it still packed Cohesion and Viu from source; the Viu sibling pack alone measured
+    # 10m39s in viu's packaging.yml. 45 leaves room for a cold cache; resize from the first runs.
+    timeout-minutes: 45
+    # A newer commit on the same pull request cancels a pack still in progress. The group covers
+    # this job only, never the publish job, so a run that has already started pushing finishes.
+    concurrency:
+      group: viu-platforms-ci-packages-pack-${{ github.event.pull_request.number || github.run_id }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      packages: read
+    env:
+      NuGetPackageSourceCredentials_assimalign: Username=${{ github.actor }};Password=${{ github.token }};ValidAuthenticationTypes=Basic
+    outputs:
+      package-count: ${{ steps.package-count.outputs.count }}
+    steps:
+      - name: Checkout build commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.commit }}
+
+      - name: Set up CI
+        uses: ./.github/actions/setup
+        with:
+          viu-sibling-ref: ${{ vars.VIU_SIBLING_REF }}
+
+      - name: Pack CI packages
+        shell: pwsh
+        env:
+          VIU_PLATFORMS_PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
+          VIU_PLATFORMS_BUILD_COMMIT: ${{ needs.prepare.outputs.commit }}
+        run: >-
+          ./scripts/Pack-Release.ps1
+          -Version $env:VIU_PLATFORMS_PACKAGE_VERSION
+          -RepositoryCommit $env:VIU_PLATFORMS_BUILD_COMMIT
+
+      # Pack-Release.ps1 built the solution at the CI version; the tests run that build.
+      - name: Test the packed build
+        shell: pwsh
+        run: dotnet test Assimalign.Viu.Platforms.slnx --configuration Release --no-build
+
+      - name: Record package count
+        id: package-count
+        shell: pwsh
+        run: |
+          $packageCount = @(Get-Content -LiteralPath '_out/release/packages/package-order.txt').Count
+          if ($packageCount -lt 1) {
+            throw 'Pack-Release.ps1 produced no packages.'
+          }
+
+          "count=$packageCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "CI package count: $packageCount"
+
+      - name: Verify package checksums
+        shell: bash
+        working-directory: _out/release/packages
+        run: sha256sum --check checksums.sha256
+
+      - name: Upload CI package artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Assimalign.Viu.Platforms.CiPackages
+          path: _out/release/packages
+          if-no-files-found: error
+          # The feed holds the published copy; the artifact only carries the set between jobs.
+          retention-days: 3
+
+  publish-github-packages:
+    name: publish ${{ needs.prepare.outputs.version }} to GitHub Packages
+    needs: [prepare, pack-packages]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download validated packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: Assimalign.Viu.Platforms.CiPackages
+          path: _ci/packages
+
+      - name: Verify package checksums
+        shell: bash
+        working-directory: _ci/packages
+        run: sha256sum --check checksums.sha256
+
+      - name: Publish validated packages
+        shell: pwsh
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
+          VIU_PLATFORMS_PACKAGE_VERSION: ${{ needs.prepare.outputs.version }}
+          VIU_PLATFORMS_PACKAGE_COUNT: ${{ needs.pack-packages.outputs.package-count }}
+          VIU_PLATFORMS_PACKAGE_CHANNEL: ${{ needs.prepare.outputs.channel }}
+          VIU_PLATFORMS_BUILD_COMMIT: ${{ needs.prepare.outputs.commit }}
+          VIU_PLATFORMS_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          $packageDirectory = '_ci/packages'
+          $packageFiles = @(Get-Content -LiteralPath "$packageDirectory/package-order.txt")
+          $expectedPackageCount = [int] $env:VIU_PLATFORMS_PACKAGE_COUNT
+          if ($packageFiles.Count -ne $expectedPackageCount) {
+            throw "Expected $expectedPackageCount CI packages, found $($packageFiles.Count)."
+          }
+
+          # A first attempt must create every version. A conflict there means the run number
+          # repeated a version already on the feed (a renamed or recreated workflow restarts its run
+          # numbers), and --skip-duplicate would silently keep the older packages. Only a re-run of
+          # this same run, whose earlier attempt may have stopped partway, may skip existing ones.
+          $duplicateArgument = @()
+          if ([int] $env:VIU_PLATFORMS_RUN_ATTEMPT -gt 1) {
+            $duplicateArgument = @('--skip-duplicate')
+          }
+
+          # One at a time, in package-order.txt's dependency-safe order, so no package arrives
+          # before a package it depends on.
+          foreach ($packageFile in $packageFiles) {
+            $packagePath = Join-Path $packageDirectory $packageFile
+            if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
+              throw "The CI artifact is missing $packageFile."
+            }
+
+            & dotnet nuget push $packagePath `
+              --source 'https://nuget.pkg.github.com/assimalign/index.json' `
+              --api-key $env:GITHUB_PACKAGES_TOKEN `
+              --no-symbols `
+              @duplicateArgument
+            if ($LASTEXITCODE -ne 0) {
+              throw "Publishing $packageFile to GitHub Packages failed with exit code $LASTEXITCODE."
+            }
+          }
+
+          @"
+          ## Published CI packages
+
+          | | |
+          | --- | --- |
+          | Version | ``$($env:VIU_PLATFORMS_PACKAGE_VERSION)`` |
+          | Channel | ``$($env:VIU_PLATFORMS_PACKAGE_CHANNEL)`` |
+          | Commit | ``$($env:VIU_PLATFORMS_BUILD_COMMIT)`` |
+          | Packages | $($packageFiles.Count) |
+
+          Pin every ``Assimalign.Cohesion.Viu.*`` reference in a consumer to
+          ``$($env:VIU_PLATFORMS_PACKAGE_VERSION)``. The feed is
+          ``https://nuget.pkg.github.com/assimalign/index.json`` and requires a token with
+          ``read:packages``; see README.md, "CI packages".
+          "@ |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
