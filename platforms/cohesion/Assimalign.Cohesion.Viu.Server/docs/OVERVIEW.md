@@ -55,6 +55,27 @@ Pin both SDKs because `Sdk.Web` chains the base SDK through an unversioned impor
 }
 ```
 
+## API endpoints beside the browser client
+
+Register routing before the Viu middleware so mapped endpoints run through Cohesion's terminal:
+
+```csharp
+builder.Services.AddRouting();
+builder.Services.AddViuClient();
+
+await using WebApplication app = builder.Build();
+app.UseRouting();
+app.MapGet("/api/hello/{name}", (string name) => $"Hello, {name}!");
+app.UseViuApplication();
+```
+
+`UseRouting()` selects an endpoint; the pipeline terminal executes it. `UseViuApplication()`
+delegates requests with a selected endpoint before applying Viu headers or serving any Viu content.
+Downstream endpoint-policy middleware still runs, and routing-generated responses such as `405`
+retain their status and `Allow` header. No `/api` branch is required for mapped endpoints.
+An unknown extensionless path, including an unmapped `/api/...` URL, still receives the SPA fallback
+when enabled; reserve an API path branch separately when unknown API requests must return 404.
+
 ## Browser application guarantees
 
 The asset catalog understands both .NET 10 static-web-assets manifests:
@@ -84,7 +105,7 @@ receive a complete 200 response. Cohesion StaticFiles is available through App.W
 retains its manifest-aware resolver; delegating conditional/range policy without losing endpoint
 variants and static-web-assets routing remains future work.
 
-`ApplyCrossOriginIsolationHeaders` applies these headers to every response observed by the Viu
+`ApplyCrossOriginIsolationHeaders` applies these headers to requests handled by the Viu
 middleware:
 
 ```text
