@@ -229,6 +229,13 @@ public static class WebApplicationViuExtensions
         /// <exception cref="ArgumentNullException">Thrown when the pipeline builder is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentException">Thrown when a configured path is invalid.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a supplied manifest cannot be read.</exception>
+        /// <remarks>
+        /// Register <c>UseRouting()</c> before this middleware to give selected endpoints precedence.
+        /// Requests with an <c>IRouterEndpointFeature</c>, including routing-generated method errors,
+        /// continue through downstream middleware to Cohesion's terminal without Viu response changes.
+        /// Unselected requests retain asset, client-document, browser-refresh, and SPA fallback behavior;
+        /// unknown API paths are not reserved automatically.
+        /// </remarks>
         public IWebApplicationPipelineBuilder UseViuApplication(Action<ViuApplicationOptions>? configure = null)
         {
             ArgumentNullException.ThrowIfNull(builder);

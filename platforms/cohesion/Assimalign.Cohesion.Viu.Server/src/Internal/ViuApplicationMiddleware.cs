@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using Assimalign.Cohesion.Http;
 using Assimalign.Cohesion.Web;
+using Assimalign.Cohesion.Web.Routing;
 using Assimalign.Cohesion.Viu.Hosting;
 
 using WebUtility = System.Net.WebUtility;
@@ -44,6 +45,14 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
+
+        // Cohesion dispatches selected endpoints at the pipeline terminal. Keep their handlers
+        // and routing-generated responses ahead of Viu content and the SPA fallback.
+        if (context.Features.Get<IRouterEndpointFeature>() is not null)
+        {
+            await next.Invoke(context).ConfigureAwait(false);
+            return;
+        }
 
         string requestPath = context.Request.Path.Value;
         if (ResourceRoutes.IsReserved(requestPath, _configuration.ControlPlanePath))

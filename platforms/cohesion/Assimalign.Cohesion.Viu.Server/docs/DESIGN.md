@@ -23,6 +23,17 @@ The package's nuspec carries framework references for `Assimalign.Cohesion.App` 
 `Assimalign.Viu.ServerRenderer` at the Viu pin in `global.json`. Cohesion's preview HTTP/Web API remains a preview
 surface, so this assembly opts in while avoiding runtime-preview mechanisms of its own.
 
+## Endpoint precedence
+
+Cohesion routing selects an `IRouterEndpointFeature`, and the pipeline terminal executes it after
+downstream middleware. The client middleware delegates a selected endpoint before changing response
+headers or handling client configuration, refresh endpoints, static assets, or the SPA fallback.
+This preserves endpoint policies and routing-generated responses such as 405, which need not carry
+a matched-route feature. Hosts place `UseRouting()` before `UseViuApplication()`.
+
+Only selected endpoints receive this precedence. Requests without an endpoint follow normal Viu
+content resolution; the middleware does not infer an API namespace from a path prefix.
+
 ## Manifest model and asset resolution
 
 Both supported manifest object graphs are closed internal types registered on
