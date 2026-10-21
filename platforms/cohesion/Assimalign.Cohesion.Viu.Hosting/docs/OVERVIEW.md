@@ -17,13 +17,10 @@ using Assimalign.Viu.Components;
 
 ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 
-builder.Services.AddComponents(GeneratedViuComponents.Register);
+builder.Services.AddComponents();
 builder.Services.AddSingleton<IClock>(_ => new SystemClock());
 builder.Configuration["application:title"] = "Cohesion Viu";
-builder.ConfigureApplication(options =>
-{
-    options.RootComponent = new ComponentNode(ComponentReference.ForName("App"));
-});
+builder.UseRootComponent<App>(); // equivalent to ComponentNode.For<App>() in RootComponent
 
 // A platform package calls builder.ConfigureHost(...), usually through a
 // platform-specific extension such as ConfigureBrowser().
@@ -75,21 +72,14 @@ provider, and the same objects are available on `ViuApplicationContext`.
 
 ## Registration and trimming
 
-Services may be registered as instances, factories, or implementation types:
+Use instance and explicit factory registrations for trimming-safe activation:
 
 ```csharp
-builder.Services.AddSingleton<IClock, SystemClock>();
+builder.Services.AddSingleton<IClock>(_ => new SystemClock());
 ```
 
-An implementation type is activated by the Cohesion container, which selects a public constructor
-and resolves its parameters from the provider. The container's type-based registration overloads
-carry `[DynamicallyAccessedMembers(PublicConstructors)]`, so trimming keeps the constructors they
-name. Where dynamic code is not compiled, as on WebAssembly, the container invokes constructors
-through reflection rather than emitting IL. A registration whose implementation `Type` the trimmer
-cannot see, such as one computed at run time, produces a trimming warning at that call site.
-
-The hosting package itself performs no assembly scanning, configuration binding, or module
-initialization, and Viu components are still activated only through their generated registrations.
+The hosting integration performs no reflection activation or assembly scanning. Viu's compiler
+emits direct catalog delegates and typed `IComponentDefinition.Registration` members.
 
 ## Lifetime and ownership
 
@@ -117,3 +107,15 @@ Version `10.0.0-preview.1` includes immutable `ViuClientConfiguration` and
 application, resource, environment and gateway names plus a nested resource/endpoint URL map.
 The constructor defensively copies both map levels; `Empty` represents unavailable configuration.
 Server and Hosting.Browser share this contract without adding a Web or browser dependency here.
+
+With no explicit factory or component contributions, `ViuApplicationBuilder` populates the
+compile-time generated aggregate by default. `services.AddComponents()` explicitly requests that
+aggregate and is idempotent per factory, including application and referenced Viu assemblies.
+Explicit callbacks and `AddComponent` suppress the implicit aggregate; combine either with
+`AddComponents()` when both are wanted. An options-assigned factory stays first, with explicit
+contributions as fallback; a service-registered `IComponentFactory` replaces composition entirely.
+`AddRouting` contributes built-in router components; call `AddComponents()` explicitly to
+include the generated aggregate alongside routing or other feature contributions.
+
+For HTTP server rendering, prefer `WebApplicationBuilder.Services.AddViuServerRendering` from
+the Server package. It composes inside the Web provider and creates one DI scope per render.

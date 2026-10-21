@@ -4,4 +4,7 @@
     <_ViuClientPublishRemoveProperties>RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;PublishAot;PublishTrimmed;PublishReadyToRun;OutDir;OutputPath;TargetFramework;PublishProfile;NoBuild;_CohesionImageBuild;EnableSdkContainerSupport</_ViuClientPublishRemoveProperties>
     <_ViuClientRemoveProperties>$(_ViuClientPublishRemoveProperties);PublishDir</_ViuClientRemoveProperties>
   </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="ViuAutoRegisterGeneratedCatalogs" />
+  </ItemGroup>
 </Project>

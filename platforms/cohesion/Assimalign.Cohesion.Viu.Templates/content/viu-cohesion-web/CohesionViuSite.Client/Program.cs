@@ -4,8 +4,8 @@ using System.Runtime.InteropServices.JavaScript;
 
 using Assimalign.Cohesion.Viu.Hosting;
 using Assimalign.Cohesion.Viu.Hosting.Browser;
-using Assimalign.Viu;
-using Assimalign.Viu.Components;
+using Assimalign.Cohesion.Viu.Routing;
+using Assimalign.Viu.Router;
 
 using CohesionViuSite.Client;
 
@@ -14,14 +14,11 @@ using HttpClient httpClient = new() { BaseAddress = new Uri(location.GetProperty
 ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 builder.ConfigureBrowser();
 builder.AddClientConfiguration(httpClient);
-builder.ConfigureApplication(options =>
-{
-    ComponentFactory components = new();
-    GeneratedViuComponents.Register(components);
-    options.Components = components;
-    options.RootComponent = new ComponentNode(ComponentReference.ForName("Counter"));
-    options.WarnHandler = Console.Error.WriteLine;
-});
+builder.Services.AddComponents();
+builder.Services.AddRouting(routing => routing.Routes.Add<Counter>("/", "Counter"));
+builder.UseRootComponent<App>();
+builder.ConfigureApplication(options => options.WarnHandler = Console.Error.WriteLine);
 
 await using ViuApplication application = builder.Build();
+application.UseRouter();
 await application.RunAsync();

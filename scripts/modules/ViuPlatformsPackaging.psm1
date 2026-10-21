@@ -62,6 +62,7 @@ $script:ViuPlatformsReleasePackage = @(
         RequiredEntry = @(
             'README.md',
             'lib/net10.0/Assimalign.Cohesion.Viu.Server.dll',
+            'analyzers/dotnet/cs/Assimalign.Cohesion.Viu.Server.Generator.dll',
             'buildTransitive/Assimalign.Cohesion.Viu.Server.props',
             'buildTransitive/Assimalign.Cohesion.Viu.Server.targets')
     }

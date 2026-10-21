@@ -16,7 +16,7 @@ IViuWebResourceDescriptor site = builder.AddViuWeb(manifest,
 ```
 
 `AddViuWeb` requires `Kind=Web` and valid `web.viu.client`, `web.viu.spa-fallback`, and
-`web.viu.base-path` properties. Declare a `ViuClientReference` item on an enabled
+`web.viu.base-path` properties. Declare a `ProjectReference` marked `ViuClient="true"` on an enabled
 `Assimalign.Cohesion.Sdk.Web` executable referencing Server to produce these facts. Like every
 Cohesion ApplicationModel package, this one declares the shared `Assimalign.Cohesion.ApplicationModel`
 namespace, so an apphost composes it with one `using`. `ValidateClient=false` skips Viu-property
@@ -34,3 +34,7 @@ Web executables retain `Assimalign.Cohesion.Web.ApplicationModel`; do not relabe
 or application-model identity to force selection. Until that SDK follow-up, an apphost calls
 `AddViuWeb(Manifests.<Name>)` explicitly, as the `viu-cohesion-web` template does. See
 [design](DESIGN.md).
+
+The Browser SDK's `GetViuBrowserClientInfo` supplies the client assembly identity written into
+`web.viu.client`. Restore/build graph participation comes from the normal project reference;
+no Viu runtime or reflection discovery is introduced into this apphost package.

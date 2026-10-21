@@ -11,6 +11,12 @@ public static class ViuServiceProviderBuilderExtensions
     /// <param name="services">The service-provider builder that owns the application composition.</param>
     extension(IServiceProviderBuilder services)
     {
+        /// <summary>Contributes the application's compile-time aggregated component catalogs.</summary>
+        /// <returns>The same service-provider builder.</returns>
+        /// <remarks>Repeated generated contributions are idempotent for each component factory.</remarks>
+        public IServiceProviderBuilder AddComponents() =>
+            services.AddComponents(static components => components.RegisterGeneratedComponents());
+
         /// <summary>
         /// Contributes components through an explicit registration callback, such as a generated
         /// <c>GeneratedViuComponents.Register</c> catalog.
@@ -29,6 +35,7 @@ public static class ViuServiceProviderBuilderExtensions
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(register);
 
+            ViuComponentComposition.GetOrAdd(services);
             return services.Add(ServiceDescriptor.Singleton(new ViuComponentContribution(register)));
         }
 

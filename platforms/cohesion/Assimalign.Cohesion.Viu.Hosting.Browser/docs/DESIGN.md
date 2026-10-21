@@ -57,3 +57,10 @@ The browser package depends on the host-neutral contract:
 flowchart LR
     Browser["Hosting.Browser: loader and provider"] --> Hosting["Hosting: immutable contract and JSON metadata"]
 ```
+
+## Generated composition
+
+Hosting resolves component contributions before creating the browser runtime. Its generated default
+and no-argument `AddComponents()` use `RegisterGeneratedComponents()`, including referenced Viu
+assemblies. Typed roots use static definitions without activation. Browser options receive the
+composed resolver explicitly, preserving Hosting's options and service override precedence.

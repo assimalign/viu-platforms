@@ -15,12 +15,11 @@ using Assimalign.Viu.Router;
 
 ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 
-builder.Services.AddComponents(GeneratedViuComponents.Register);
+builder.Services.AddComponents();
 builder.Services.AddRouting(routing =>
 {
-    routing.Routes.Add(new RouteRecord(
-        "/",
-        component: new ComponentNode(ComponentReference.ForName("HomePage"))));
+    routing.Routes.Add<HomePage>("/", "Home");
+    // Or: routing.Routes.Add("/", "HomePage", "Home");
 });
 builder.ConfigureApplication(options =>
     options.RootComponent = new ComponentNode(RouterView.Registration.Reference));
@@ -82,3 +81,8 @@ The package references `Assimalign.Cohesion.Viu.Hosting` and `Assimalign.Viu.Bro
 brings `Assimalign.Viu.Router` and `Assimalign.Viu.Browser`. `Assimalign.Viu.Browser.Router` flows
 its browser-history script into consuming WebAssembly applications, which is why routing is not
 part of `Assimalign.Cohesion.Viu.Hosting.Browser`.
+
+`Routes` remains `IList<RouteRecord>`; Viu's `ICollection<RouteRecord>` extension members
+apply directly. Import `Assimalign.Viu.Router`. Typed routes use the definition's registered name
+and store title metadata without handwritten records. `AddRoutes(Func<IServiceProvider,
+IEnumerable<RouteRecord>>)` remains the service-aware contribution seam.

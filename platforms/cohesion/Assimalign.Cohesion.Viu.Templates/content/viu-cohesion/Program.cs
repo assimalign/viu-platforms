@@ -1,22 +1,17 @@
 using Assimalign.Cohesion.Viu.Hosting;
 using Assimalign.Cohesion.Viu.Hosting.Browser;
-using Assimalign.Viu;
-using Assimalign.Viu.Components;
+using Assimalign.Cohesion.Viu.Routing;
+using Assimalign.Viu.Router;
 
 using CohesionViuApplication;
 
 ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 builder.ConfigureBrowser();
 
-builder.ConfigureApplication(options =>
-{
-    ComponentFactory components = new();
-    GeneratedViuComponents.Register(components);
+builder.Services.AddComponents();
+builder.Services.AddRouting(routing => routing.Routes.Add<Counter>("/", "Counter"));
+builder.UseRootComponent<App>();
 
-    options.RootComponent = new ComponentNode(
-        ComponentReference.ForName("Counter"));
-    options.Components = components;
-});
-
-ViuApplication application = builder.Build();
+await using ViuApplication application = builder.Build();
+application.UseRouter();
 await application.RunAsync();

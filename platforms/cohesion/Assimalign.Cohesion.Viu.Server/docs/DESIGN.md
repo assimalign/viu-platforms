@@ -3,8 +3,9 @@
 ## Hosting boundary
 
 The Cohesion Web application builder is the bridge's guiding public surface. `AddViuApplication`
-extends `IWebApplicationBuilder`, captures immutable configuration as an application feature, and
-performs no container registration or configuration binding. `UseViuApplication` installs that
+adapts `IWebApplicationBuilder` to `Services.AddViuClient` on the concrete Web builder;
+custom implementations retain feature-based registration. Service registration captures immutable
+asset configuration and creates a non-disposable `IHttpFeature` through an explicit factory. `UseViuApplication` installs that
 configuration on the built application; the pipeline-only overload and both explicit server-render
 verbs remain available for non-hosting pipeline implementations.
 
@@ -13,13 +14,13 @@ rule constrains feature projects inside the Cohesion repository, while this Serv
 cross-repository host bridge. It therefore consumes
 `Assimalign.Cohesion.Sdk.Web` and its App/App.Web shared frameworks rather than direct Cohesion Web
 library packages. `Assimalign.Cohesion.FileSystem.Globbing` is the one direct Cohesion package: it is
-not an App or App.Web framework member, and the static-asset catalog matches globs with it. Phase 6 adds the explicit Hosting application/lifecycle linkage,
-while listener ownership and process lifetime remain with the Cohesion Web host.
+not an App or App.Web framework member, and the static-asset catalog matches globs with it. The Web container owns composition and lifecycle;
+listener ownership and process lifetime remain with the Cohesion Web host.
 
 The package's nuspec carries framework references for `Assimalign.Cohesion.App` and
 `Assimalign.Cohesion.App.Web`; its ordinary dependencies are
 `Assimalign.Cohesion.Viu.Hosting` `10.0.0-preview.1` and
-`Assimalign.Viu.ServerRenderer` `10.0.0-preview.1`. Cohesion's preview.3 HTTP/Web API remains a preview
+`Assimalign.Viu.ServerRenderer` at the Viu pin in `global.json`. Cohesion's preview HTTP/Web API remains a preview
 surface, so this assembly opts in while avoiding runtime-preview mechanisms of its own.
 
 ## Manifest model and asset resolution
@@ -75,95 +76,44 @@ change in place during watch, but newly fingerprinted routes require a process r
 the current dev-server lifecycle; an atomic manifest-reload layer remains a future enhancement if
 the host begins surviving route-graph changes.
 
-## Server-render adapter
+## Server composition and request ownership
 
-`ConfigureServerRendering` satisfies the host-pluggable Hosting contract with a persistent
-composition runtime. That runtime uses Core's `ApplicationContext` and `ApplicationLifetime`, runs
-registered Viu application middleware, and stays ready until stopped. It intentionally has no
-persistent renderer, mounted tree, or `ServerRenderApplication`; those concepts have HTTP-request
-lifetime in ServerRenderer.
+`services.AddViuServerRendering` registers one options instance, the component contribution seam,
+and factory-created composition/lifecycle services in the Web container. Web build materializes
+host services, so missing roots and invalid/conflicting catalogs fail before requests arrive.
+The composition service snapshots all options, calls `RegisterGeneratedRenders()` only when
+`ServerRenders` is unset, and freezes the selected registry. `Components` overrides the composed
+`IComponentFactory`; otherwise `AddComponents()` supplies compile-time aggregate catalogs.
+Neither registration path uses reflection activation or creates a second service provider.
 
-`AddViuServerApplication` is restricted to the concrete pre-build `WebApplicationBuilder` because
-`IWebApplicationBuilder` exposes no service-registration seam. It registers an instance-backed
-`IHostService` adapter, so activation is reflection-free and the Web host starts/stops the borrowed
-Viu application in ordinary service order. Ownership does not transfer and disposal remains with
-the caller.
+The service owns a composition-only `ServerViuApplication` lifetime. Web start/stop delegates to
+that runtime, and Web provider disposal releases it. No persistent renderer or mounted tree is
+retained. The pipeline resolves this service once, then installs immutable middleware; request
+execution does not resolve the composition service again.
 
-The hosting-model pipeline overload snapshots the built Viu composition once and freezes the
-supplied concrete `ServerRenderRegistry` before publishing middleware. Its request-scope factory
-copies those borrowed references into a new `ApplicationOptions` and then constructs a fresh
-`ApplicationContext`, `ServerRenderApplication`, and `SsrContext` for every render. This preserves
-ServerRenderer's reuse guards and keeps reactive, teleport, and hydration bookkeeping isolated.
-The immutable root description and built root service provider are shared. No child Cohesion DI
-scope or HTTP-context service is synthesized; consumers needing either supply the existing public
-`ServerRenderAdaptor<IHttpContext>` and their own request-scope factory.
+Cohesion DI supports asynchronous child scopes, while `IHttpContext` exposes no request-services
+provider. The new request factory therefore creates one render-owned async scope and copies the
+frozen component and diagnostic references into new application options. It resolves unset state
+and directives from the child provider, creates a fresh application context, render application,
+and SSR context, and returns ownership of the DI scope to Viu's adaptor. Scope creation failures
+release any already-created scope. Teardown always releases the scope even for a cancelled HTTP
+request, after Viu's renderer has released its component leases. This permits scoped application
+services without changing Cohesion's HTTP contracts or synthesizing ambient HTTP-context services.
+Explicit state/directive instances remain shared and borrowed; request state should be factory
+registered with a scoped lifetime. Singleton services remain the Web host's singletons.
 
-`ViuServerRendererMiddleware` owns only host mapping. Application composition stays outside:
+The existing borrowed-application and explicit-adaptor overloads retain their ownership rules.
+`AddViuServerApplication` starts/stops a caller-owned Viu host and never disposes it. Its request
+factory still borrows that host's root provider without making child scopes. Applications needing
+custom request roots, HTTP-aware services, or coordination with another middleware scope provide
+an explicit `ServerRenderAdaptor<IHttpContext>` and request-scope factory.
 
-```text
-Cohesion IHttpContext
-  -> request root factory
-  -> ServerRenderRequest<IHttpContext>
-  -> ServerRenderAdaptor<IHttpContext>
-  -> CohesionServerRenderOutput
-  -> IHttpResponse.Body
-```
-
-The application supplies the adaptor because only it can create request services and invoke its
-generated `GeneratedViuComponents.Register` and `GeneratedViuServerRenders.Register` methods. The
-bridge avoids reflection, assembly scanning, service location, and hidden internal APIs.
-
-The generated server-render registry is populated during application composition and frozen before
-the adaptor is published to the request pipeline:
-
-```csharp
-ServerRenderRegistry registry = new();
-GeneratedViuServerRenders.Register(registry);
-
-IServerRenderRegistry serverRenders = registry.Freeze();
-ServerRenderAdaptor<IHttpContext> adaptor =
-    new(requestScopeFactory, serverRenders);
-```
-
-`Freeze` is an idempotent publication boundary. It publishes one immutable snapshot for lock-free
-concurrent resolution and rejects every later registration, so all generated and application-owned
-registrations must be complete before this transition.
-
-Writes flow through one stateful UTF-8 encoder that leaves the borrowed response stream open.
-This preserves surrogate pairs across Viu chunks and preserves exact awaited flush/backpressure
-boundaries. Encoder completion observes `IHttpContext.RequestCancelled` and occurs before a failed
-buffered response is cleared, so final encoder bytes cannot be written after the replacement response
-has truncated the stream. The adaptor receives that same request-abort token and passes it to
-`IServerRenderRequestScope.DisposeAsync(CancellationToken)` on every teardown path.
-
-Cohesion's transport remains authoritative over response commitment. While `IHttpResponse.Body` is
-the current replaceable memory buffer, `CohesionServerRenderOutput.ResponseCommitted` is always
-`false`: neither an attempted write nor an accepted flush makes the response irreversibly visible.
-The middleware therefore replaces a failed buffered render with a clean 500 only when
-`ServerRenderResult.ResponseCommitted` is false. When Cohesion gains a streaming transport, the
-output property must instead delegate to its monotonic, transport-confirmed `HasStarted` state; a
-failure after that state is true must preserve the committed stream. Viu snapshots the host's value
-after request-scope teardown, so commitment remains authoritative even when teardown is the failing
-operation.
-
-The basic server-render overload emits the primary render stream. A document-shell overload also
-accepts `Func<IHttpContext, IServerRenderDocumentShell>`, creates the shell per request, and calls
-`ServerRenderAdaptor<IHttpContext>.RenderDocumentAsync`. Its ordering is strict:
-
-1. the host-owned prefix is written and any non-empty pending content is flushed before component
-   execution;
-2. the main render retains Viu's progressive subtree flush and backpressure boundaries;
-3. after a successful main render resolves every teleport, the host-owned suffix receives the
-   stable target-to-payload map and is flushed before request-scope teardown.
-
-Every teleport destination must occur in the suffix. The shell owns destination order and markers
-and writes each matching payload verbatim because Viu already includes the required hydration
-anchor. Prefix, render, output, or cancellation failure suppresses the suffix; suffix failure follows
-the ordinary render-failure path.
-
-This seam deliberately supports suffix-only teleport splicing. It cannot backpatch an already
-streamed prefix, an already closed `<head>`, or an emitted main-body region. A host that needs an
-earlier destination must buffer that document region or perform a render prepass.
+`ViuServerRendererMiddleware` maps HTTP to Viu's public adaptor and output contracts. It preserves
+prefix/main/teleport-suffix ordering, progressive flushes, cancellation, and host exception mapping.
+Cohesion's current response body is replaceable memory; attempted writes/flushes do not establish
+transport commitment. Encoder completion precedes replacement of a failed buffered response.
+A future streaming transport must supply authoritative commitment state. Document shells can splice
+teleports into the suffix only; earlier destinations require buffering or a prepass.
 
 ## AOT constraints
 
@@ -174,11 +124,19 @@ and the supplied root factory keep application activation explicit.
 
 ## Resource-aware publishing and client document
 
-`buildTransitive/Assimalign.Cohesion.Viu.Server.props|targets` activate only when a `ViuClientReference` item
-is declared. The non-compiling project reference removes Web RID, self-contained, AOT, trimming and
-ready-to-run properties. `ViuResolveClientOutput` calls the public MSBuild `GetTargetPath` target;
-its returned assembly path supplies the client's own target directory and assembly name.
-The target writes both into `viu-client.json` in the Web project's intermediate directory and
+`buildTransitive/Assimalign.Cohesion.Viu.Server.props|targets` select normal
+`ProjectReference` items marked `ViuClient="true"` at evaluation time. This preserves the restore
+graph while automatically suppressing compile references and transitive content copying. NuGet
+excludes package imports when evaluating restore, so Viu SDK framework identities from clients or component libraries can still
+appear in the graph. Before .NET adds transitive framework references, the package removes only
+`Assimalign.Viu.App` and `Assimalign.Viu.App.Browser` from that transitive list. Direct framework
+references and unrelated frameworks remain intact; no second restore or path guessing is needed. The
+reference removes Web RID, self-contained, AOT, trimming and ready-to-run properties.
+`ViuResolveClientOutput` queries the Browser SDK's `GetViuBrowserClientInfo` contract, validates
+one Browser identity and complete metadata, and uses the returned output/manifest paths directly.
+Missing or ordinary non-Browser projects and multiple marked clients fail clearly. The retired
+`ViuClientReference` and `ViuClientProject` inputs fail with the replacement XML in the error.
+The target writes the identity, output and manifest paths into `viu-client.json` in the Web project's intermediate directory and
 declares that file as copy-to-output content (`CopyToPublishDirectory=Never`), so it sits beside
 the executable out of process and, because Cohesion's gateway SDK stages a member's declared
 copy-to-output content into the member's resource content root, inside that content root when a
@@ -190,7 +148,8 @@ image fingerprints include them. It never packs or changes a sibling project.
 
 `UseClientOutput` first checks `AppContext.BaseDirectory/wwwroot/index.html`, then reads
 `viu-client.json` from the ambient `ResourceContext.ContentRootPath` and, when that differs, from
-`AppContext.BaseDirectory`; a document naming a different client is ignored. A published root
+`AppContext.BaseDirectory`; a document naming a different explicitly requested client is ignored. The parameterless overload
+accepts the document's sole client. Incomplete documents require a rebuild instead of guessed paths. A published root
 uses no asset manifest; a build root uses both runtime and endpoints manifests. Physical files
 retain their logical names for MIME lookup while compression selects a sibling and adds `Vary`.
 Probe paths and the configured control-plane path (`/cohesion/v1` by default — never the whole
@@ -216,3 +175,14 @@ flowchart LR
 The site remains `Kind=Web` with `Assimalign.Cohesion.Web.ApplicationModel`. Apphost-side Viu
 validation belongs in the separate ApplicationModel package. SDK-generated `AddAllResources()`
 continues to choose `AddWeb` until Cohesion supports the Viu overlay mapping.
+
+## Catalog publication in a Cohesion-only executable
+
+The Server package ships a small incremental generator under `analyzers/dotnet/cs`. It reads
+Viu's public `ComponentCatalogAttribute` and `ServerRenderCatalogAttribute` from compiler-known
+assembly symbols, sorts full assembly identities, and emits module initialization with direct
+publication delegates. This bridges Web executables that do not use the Viu SDK; it neither parses
+components nor creates a second component catalog. Viu retains population, diamond deduplication,
+and duplicate-component diagnostics. Application-local `.viu` files still use Viu's compiler.
+Executable compilations enable publication by default; `ViuAutoRegisterGeneratedCatalogs=false`
+opts out, and libraries can opt in. This compiler-only project is not a ninth shipping package.

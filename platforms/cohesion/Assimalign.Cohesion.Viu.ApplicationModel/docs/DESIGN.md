@@ -25,7 +25,7 @@ flowchart LR
 and creates Web options containing its replica and storage overrides. Forwarding the inherited
 storage setting preserves Web's rejection of stateful storage rather than silently discarding it.
 `ValidateClient` is consumed only at composition time. Missing and malformed properties produce
-an exception naming the property and the `ViuClientReference` build input.
+an exception naming the property and the `ProjectReference ViuClient="true"` build input.
 
 `AddViuWeb` calls `AddWeb` once and wraps its descriptor. The wrapper forwards resource identity,
 plan, commands and dependencies, retaining its typed return from `DependsOn`. It snapshots the
@@ -48,3 +48,7 @@ Web identity. This repository adds no competing mapping. Explicit `AddViuWeb` is
 
 All activation is ordinary construction and JSON fixtures use Cohesion's generated metadata.
 No reflection, friend assembly, Viu runtime dependency, or public-interface state is introduced.
+
+The Browser SDK's `GetViuBrowserClientInfo` supplies the client assembly identity written into
+`web.viu.client`. Restore/build graph participation comes from the normal project reference;
+no Viu runtime or reflection discovery is introduced into this apphost package.

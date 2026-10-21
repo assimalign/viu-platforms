@@ -35,7 +35,7 @@ public static class ViuWebResourceExtensions
             ArgumentNullException.ThrowIfNull(declaration);
             ArgumentNullException.ThrowIfNull(configure);
             ResourceManifest manifest = declaration.Manifest
-                ?? throw new ArgumentException("A remote Viu Web reference requires a Web manifest produced by a Web executable with a ViuClientReference.", nameof(declaration));
+                ?? throw new ArgumentException("A remote Viu Web reference requires a Web manifest produced by a Web executable with a ProjectReference marked ViuClient=true.", nameof(declaration));
             Validate(manifest, true);
             return new ViuWebResourceDescriptor(builder.RemoteReferenceWeb(declaration, configure), manifest);
         }
@@ -46,7 +46,7 @@ public static class ViuWebResourceExtensions
         ArgumentNullException.ThrowIfNull(manifest);
         if (!string.Equals(manifest.Kind, "Web", StringComparison.Ordinal))
         {
-            throw new ArgumentException("A Viu site requires Kind 'Web'. Use Assimalign.Cohesion.Sdk.Web with a ViuClientReference.", nameof(manifest));
+            throw new ArgumentException("A Viu site requires Kind 'Web'. Use Assimalign.Cohesion.Sdk.Web with a ProjectReference marked ViuClient=true.", nameof(manifest));
         }
         if (validateClient) { ViuWebManifestProperties.Validate(manifest); }
     }

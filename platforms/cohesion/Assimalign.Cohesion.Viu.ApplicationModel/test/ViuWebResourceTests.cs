@@ -27,7 +27,7 @@ public sealed class ViuWebResourceTests
         ArgumentException exception = Should.Throw<ArgumentException>(() => Application.CreateBuilder()
             .AddViuWeb(source with { Properties = properties }));
         exception.Message.ShouldContain(key);
-        exception.Message.ShouldContain("ViuClientReference");
+        exception.Message.ShouldContain("ViuClient=true");
     }
 
     [Theory]

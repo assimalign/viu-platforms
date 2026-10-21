@@ -15,6 +15,62 @@ namespace Assimalign.Cohesion.Viu.Hosting.Tests;
 
 public sealed class ViuApplicationCompositionTests
 {
+    static ViuApplicationCompositionTests() => GeneratedComponentCatalogs.Register(
+        "Cohesion.Hosting.Tests", static components => components.Register(GeneratedRoot.Registration));
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GeneratedComponentsAreTheDefaultAndCanBeRequestedWithoutCallbacks(bool contribute)
+    {
+        CapturingHostFactory factory = new();
+        ViuApplicationBuilder builder = CreateConfiguredBuilder(factory).UseRootComponent<GeneratedRoot>();
+        if (contribute)
+        {
+            builder.Services.AddComponents().AddComponents();
+        }
+
+        await using ViuApplication application = builder.Build();
+
+        factory.Options!.Components.Resolve(GeneratedRoot.Registration.Reference)
+            .ShouldBeSameAs(GeneratedRoot.Registration);
+        factory.Options.RootComponent.ShouldBeOfType<ComponentNode>().Component
+            .ShouldBe(GeneratedRoot.Registration.Reference);
+    }
+
+    [Fact]
+    public async Task ExplicitContributionsSuppressImplicitGeneratedComponents()
+    {
+        CapturingHostFactory factory = new();
+        ViuApplicationBuilder builder = CreateConfiguredBuilder(factory);
+        builder.Services.AddComponent(CreateRegistration("OnlyExplicit"));
+
+        await using ViuApplication application = builder.Build();
+
+        factory.Options!.Components.TryResolve(GeneratedRoot.Registration.Reference, out _).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ExplicitOptionsPrecedeRequestedGeneratedComponents()
+    {
+        ComponentRegistration replacement = CreateRegistration("HostingGeneratedRoot");
+        ComponentFactory assigned = new();
+        assigned.Register(replacement);
+        CapturingHostFactory factory = new();
+        ViuApplicationBuilder builder = CreateConfiguredBuilder(factory);
+        builder.Services.AddComponents();
+        builder.ConfigureApplication(options => options.Components = assigned);
+
+        await using ViuApplication application = builder.Build();
+
+        factory.Options!.Components.Resolve(replacement.Reference).ShouldBeSameAs(replacement);
+    }
+
+    private sealed class GeneratedRoot : IComponentDefinition
+    {
+        public static ComponentRegistration Registration { get; } = CreateRegistration("HostingGeneratedRoot");
+    }
+
     [Fact]
     public async Task ContributedComponentsComposeIntoTheRuntimeAndServiceFactory()
     {

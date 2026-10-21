@@ -55,7 +55,11 @@ instance is not disposed by the provider.
 
 ## Server rendering
 
-The router is a provider singleton. The Server package's convenience path shares the application
-provider across concurrent requests, so a request-specific router needs a request-scoped provider
-supplied through the advanced request-scope factory. Scoped routing registration is not part of
+The router is a provider singleton. Server's DI-first rendering path creates a scope per render, but this registration remains a
+singleton and is not converted into a request router. Request-specific navigation needs an explicit
+scoped router factory and request-root/navigation policy through the advanced adaptor seam. Scoped routing registration is not part of
 this package.
+
+The options keep `IList<RouteRecord>`, which inherits Viu's `ICollection<RouteRecord>` extension
+receiver. String and `Add<TComponent>` routes therefore need no Cohesion forwarding overload.
+Tests resolve both shapes through the registered router and verify title/definition identity.
