@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 
+using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Viu.Components;
 
 namespace Assimalign.Cohesion.Viu.Hosting;
@@ -11,8 +12,31 @@ namespace Assimalign.Cohesion.Viu.Hosting;
 /// When the application assigned its own factory, that factory keeps precedence and contributions
 /// are consulted only after it misses.
 /// </remarks>
-internal static class ViuComponentComposition
+internal sealed class ViuComponentComposition
 {
+    public ComponentFactory DefaultComponents { get; set; } = new();
+
+    public IComponentFactory? ExplicitComponents { get; set; }
+
+    public static ViuComponentComposition GetOrAdd(IServiceProviderBuilder services)
+    {
+        foreach (ServiceDescriptor descriptor in services.Container)
+        {
+            if (descriptor.ImplementationInstance is ViuComponentComposition composition)
+            {
+                return composition;
+            }
+        }
+
+        ViuComponentComposition added = new();
+        services.AddSingleton(added);
+        services.TryAddSingleton<IComponentFactory>(provider => Compose(
+            added.ExplicitComponents,
+            added.DefaultComponents,
+            provider.GetServices<ViuComponentContribution>()));
+        return added;
+    }
+
     public static IComponentFactory Compose(
         IComponentFactory? explicitComponents,
         ComponentFactory defaultComponents,
@@ -23,7 +47,10 @@ internal static class ViuComponentComposition
 
         if (explicitComponents is null || ReferenceEquals(explicitComponents, defaultComponents))
         {
-            Apply(defaultComponents, contributions);
+            if (!Apply(defaultComponents, contributions))
+            {
+                defaultComponents.RegisterGeneratedComponents();
+            }
             return defaultComponents;
         }
 

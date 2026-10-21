@@ -19,10 +19,8 @@ ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 builder.Services.Add(ServiceDescriptor.Singleton<IClock>(
     _ => new SystemClock()));
 builder.Configuration["application:title"] = "Browser application";
-builder.ConfigureApplication(options =>
-{
-    options.RootComponent = new TextNode("Hello from the browser");
-});
+builder.Services.AddComponents();
+builder.UseRootComponent<App>();
 builder.ConfigureBrowser(options =>
 {
     options.MountTargetSelector = "#app";
@@ -63,3 +61,8 @@ Call `builder.AddClientConfiguration(httpClient)` before `Build()`. An optional
 unsupported-schema, failed or timed-out requests. They retain `ViuClientConfiguration.Empty`.
 The supplied HTTP client is borrowed and must have a base address for relative paths.
 Components resolve `ViuClientConfigurationProvider` and synchronously read `Current`.
+
+Application and referenced-library component catalogs are generated aggregates.
+`AddComponents()` requests them without aliases/callbacks; an otherwise unconfigured hosting
+builder uses them by default. Typed `ComponentNode.For<App>()` and `UseRootComponent<App>()`
+select generated definitions. See Hosting for explicit factory/contribution precedence.

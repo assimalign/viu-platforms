@@ -2,12 +2,12 @@
 
 The Client runs Viu in the browser. Web is an enabled Cohesion Web resource serving that client,
 its public `/_cohesion/client.json` document, and Cohesion health/control-plane routes. AppHost
-composes Web through the Local or Kubernetes gateway. All project SDKs are pinned in `global.json`.
+composes Web through the built-in Local gateway. All project SDKs are pinned in `global.json`.
 
 ## Local packages
 
-This template tracks Cohesion `10.0.0-preview.1.local`, Viu `10.0.0-preview.1`, and the Viu hosting
-family `10.0.0-preview.1`. Populate the four local feeds named in `NuGet.config` before building.
+This template pins Viu `10.0.0-preview.0.pr.379.5`, Cohesion `10.0.0-preview.0.ci.21`,
+and platform packages `10.0.0-preview.1`. Pack the local platform family before building.
 When creating the template outside the sibling checkout directory, pass
 `--assimalignRoot C:/Source/repos/assimalign`. The `--cohesionVersion` parameter selects another
 complete SDK/framework/library identity. Keep SDK and library identities aligned.
@@ -16,7 +16,6 @@ complete SDK/framework/library identity. Keep SDK and library identities aligned
 dotnet build
 dotnet run --project CohesionViuSite.Web
 dotnet run --project CohesionViuSite.AppHost -- --gateway local --mode describe
-dotnet run --project CohesionViuSite.AppHost -- --gateway kubernetes --mode render
 ```
 
 Web defaults to HTTP port 8080. `COHESION_ENDPOINT_HTTP_PORT` selects another port.
@@ -25,7 +24,10 @@ warn and retain an empty configuration. The supplied `HttpClient` belongs to Pro
 
 ## Publish and containers
 
-A `ViuClientReference` item establishes build order and supplies build asset manifests. Publishing Web
+A normal `<ProjectReference Include="../Client/Client.csproj" ViuClient="true" />` joins the restore
+graph and establishes build order without a compile reference. The Browser SDK identity query
+supplies exact manifest paths; `builder.Services.AddViuClient()` infers the single client.
+Building Web restores Client automatically; no separate restore is required. Publishing Web
 publishes the client in Release using its own trimming settings, then bundles its entire physical
 `wwwroot`, including framework assets and compressed siblings. Published hosting needs no manifests.
 
@@ -39,7 +41,9 @@ It produces an OCI archive without a Dockerfile or registry push. The current Co
 resolver accepts only `linux-x64` and `linux-musl-x64`; `linux-arm64` ordinary publish works,
 but its image target requires a Cohesion SDK follow-up. Release images require NativeAOT and a
 supported Linux build host/toolchain. Debug permits a self-contained JIT image.
-Kubernetes render may require published image metadata and gateway configuration; it does not deploy.
+Kubernetes is opt-in: set `CohesionGateways` to `Local;Kubernetes` and
+`CohesionPlatformsVersion` to gateway packages built against the same Cohesion identity.
+`--gateway kubernetes --mode render` also needs image metadata and gateway configuration; it does not deploy.
 
 ## Application model
 
@@ -48,3 +52,8 @@ Web remains `Kind=Web` and declares `Assimalign.Cohesion.Web.ApplicationModel`. 
 `AddViuWeb(Manifests.<Name>)`, which validates those facts and produces the same Web plan as the
 generated `Add<Name>()` verb. Automatic Viu verb selection requires a Cohesion SDK
 `CohesionGatewayResourceKind` mapping follow-up. Do not change Web's resource kind or application model.
+
+Components use `builder.Services.AddComponents()`, `builder.UseRootComponent<App>()` and
+`routing.Routes.Add<Counter>("/", "Counter")`. No catalog aliases or component-name strings are
+needed. Supply GitHub Packages credentials with `NuGetPackageSourceCredentials_assimalign`;
+no credentials are stored in the template.

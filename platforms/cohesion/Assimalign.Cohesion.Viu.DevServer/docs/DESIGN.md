@@ -3,7 +3,7 @@
 ## Hosting boundary
 
 The server uses `Assimalign.Cohesion.Sdk.Web` at the `global.json` pin and the App/App.Web shared frameworks.
-`WebApplication.CreateBuilder()` is the composition root: `AddViuApplication` registers the bridge,
+`WebApplication.CreateBuilder()` is the composition root: `builder.Services.AddViuClient(...)` registers the bridge,
 `builder.Server.UseServer(...UseHttp1...)` configures every resolved URL, and the built application
 installs the registered middleware through `UseViuApplication`.
 
@@ -76,3 +76,7 @@ The tool and its tests resolve the Web SDK through the `global.json` pin, avoidi
 versions. The Server dependency remains a library despite the new Web SDK's executable default.
 Packing still publishes the managed Cohesion framework closure into `tools`; the deployable Web
 resource template consumes Server's client bundling targets directly instead of shipping this tool.
+
+The development host supplies explicit content and manifest paths to `AddViuClient`; it does not
+infer a client project. Deployable Web sites use a normal `ProjectReference ViuClient="true"` and
+parameterless `AddViuClient()` instead. Both paths install `UseViuApplication()` after build.

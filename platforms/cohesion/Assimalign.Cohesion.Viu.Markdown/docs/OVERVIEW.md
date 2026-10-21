@@ -62,7 +62,7 @@ The helper adds the catalog, source, node and HTML renderers to services and con
 `MarkdownPageView`, `MarkdownNavigation`, `RouterLink`, and `RouterView` by type and template name
 through `builder.Services.AddComponents`. The contribution preserves existing registrations and
 reaches the application's component factory regardless of `ConfigureApplication` order; register
-generated application components with `builder.Services.AddComponents(GeneratedViuComponents.Register)`.
+generated application components with `builder.Services.AddComponents()`.
 Alternatively supply `SourceFactory` to create a source using the final provider's dependencies.
 Supply exactly one source instance or factory. Instance ownership remains with the caller;
 factory-created disposable dependencies follow the host provider's lifetime.
@@ -125,7 +125,7 @@ adds the same heading IDs and rewrites known links without mutating the document
 fragment with ordinary anchors; `RouteHrefFactory` can format its internal hrefs for a chosen host.
 The component always uses the node renderer.
 
-Viu beta.12 matches plain page and layout paths after separating the URL suffix. `RouteLocation.Path`
+Viu matches plain page and layout paths after separating the URL suffix. `RouteLocation.Path`
 contains only the path; `RawQuery`/`Query` and `Fragment` expose the suffix, while `FullPath` preserves
 its original spelling. Named routes resolve to catalog paths. Hosts scroll through `ScrollBehavior`
 using `to.Fragment`, for example `new ScrollTarget("#" + to.Fragment)` for a non-empty heading fragment
@@ -141,3 +141,10 @@ for the server-rendering boundary and known upstream seams.
 Version `10.0.0-preview.1` uses the Cohesion build `global.json` pins. The package target
 normalizes `ViuMarkdownContentRoot` with `MSBuild.NormalizePath`, which works in both dotnet MSBuild
 and Visual Studio's .NET Framework MSBuild. Catalog and runtime rendering behavior are unchanged.
+
+Application components can use `AddComponents()` and typed roots/routes from the new Viu
+seams. Markdown's explicit component contribution remains additive; request generated catalogs
+explicitly when composing it without `AddRouting`. Web-host SSR now composes through
+`services.AddViuServerRendering` with one render-owned DI scope. Immutable Markdown catalogs
+can be singleton services; request-specific router location and root selection still belong to the
+application's explicit adaptor policy. This package adds no Web dependency.

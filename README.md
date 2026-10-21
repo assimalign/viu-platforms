@@ -44,11 +44,9 @@ ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
 builder.Configuration["features:greeting"] = "enabled";
 builder.Services.AddSingleton<IGreetingService>(
     _ => new GreetingService());
-builder.Services.AddComponents(GeneratedViuComponents.Register);
+builder.Services.AddComponents();
 
-builder.ConfigureApplication(options =>
-    options.RootComponent = new ComponentNode(
-        ComponentReference.ForName("App")));
+builder.UseRootComponent<App>();
 builder.ConfigureBrowser();
 
 ViuApplication application = builder.Build();
@@ -61,16 +59,14 @@ directive resolvers come from services, and unset warning and error handlers wri
 error. Routing is registered the same way through `Assimalign.Cohesion.Viu.Routing`:
 `builder.Services.AddRouting(...)` before building and `application.UseRouter()` after.
 
-Services may be registered as instances, factories, or implementation types such as
-`builder.Services.AddSingleton<IClock, SystemClock>()`. Implementation types are activated by the
-Cohesion container, whose type-based overloads preserve public constructors for trimming and which
-invokes constructors through reflection, never emitted IL, on WebAssembly. Assembly scanning,
-configuration binding, and module initializers remain excluded. The built provider is supplied as
-Viu's `context.Services`; Cohesion configuration is registered in that provider.
+Register services as instances or explicit factories, keeping activation AOT/trimming safe.
+Generated catalogs publish direct delegates at compile time; no runtime assembly scanning or
+reflection activation is required. The built provider is supplied as Viu's `context.Services`;
+Cohesion configuration is registered in that provider.
 
 `Assimalign.Cohesion.Viu.Hosting` owns the provider and configuration manager it builds. User
 services start before the selected Viu runtime and stop after it. Browser cancellation follows the
-public Viu lifetime; Viu beta.12 does not yet expose a browser-unload notification hook.
+public Viu lifetime; Viu does not yet expose a browser-unload notification hook.
 
 ## Markdown content
 
@@ -105,17 +101,63 @@ for project settings and plain service-provider composition.
 
 ## Cohesion Web and server rendering
 
-`Assimalign.Cohesion.Viu.Server` preserves the existing `AddViuApplication`,
-`UseViuApplication`, and adaptor-based `UseViuServerRenderer` APIs. Its hosting-model overloads
-borrow the frozen composition from a `ViuApplication`, freeze the explicit server-render registry,
-and create a fresh `ServerRenderApplication` and `SsrContext` for every request. A Cohesion Web
-builder registration can link the borrowed server application's start/stop lifecycle to the Web
-host.
+Compose server rendering in the Web host's single container:
 
-The long-lived server application owns composition and middleware lifetime only; it never reuses a
-server-render application across requests. The convenience path shares the application provider
-and state. Applications that require a request-specific service provider should keep using the
-advanced `ServerRenderAdaptor<IHttpContext>` overload and provide their own request-scope factory.
+```csharp
+using Assimalign.Cohesion.DependencyInjection;
+using Assimalign.Cohesion.Viu.Server;
+using Assimalign.Cohesion.Web.Hosting;
+using Assimalign.Viu.Components;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+builder.Services
+    .AddSingleton<ITaskCatalog>(catalog)
+    .AddViuServerRendering(rendering =>
+    {
+        rendering.RootComponent = ComponentNode.For<ServerReport>();
+        rendering.DocumentShell = _ => ReportDocumentShell.Instance;
+    })
+    .AddViuClient();
+
+await using WebApplication application = builder.Build();
+application.UseViuServerRenderer(context => context.Request.Path.Value == "/report");
+application.UseViuApplication();
+await application.RunAsync();
+```
+
+`rendering.UseRootComponent<ServerReport>()` is equivalent to assigning the typed node.
+Generated component and render aggregates include application and referenced Viu assemblies.
+A packaged compiler bridge publishes referenced catalogs for Cohesion-only Web executables.
+`Components` and `ServerRenders` replace those defaults independently. The render registry freezes
+at Web build; root, shell factory, state, directives, and diagnostics are captured then. Repeated
+`AddViuServerRendering` calls configure one composition. Unset warning/error handlers write to
+standard error. Component services come from the Web container through `Context.Services`.
+
+The Web host starts, stops, and disposes the composition runtime. No separate Viu host or provider
+is built. Every accepted render owns a fresh `ApplicationContext`, `ServerRenderApplication`,
+`SsrContext`, and asynchronous Cohesion DI scope. Scoped services and unset state/directive
+resolvers use that scope; singleton services remain shared. Viu tears down components before the
+scope releases its resources, including after failure or cancellation. Explicit state/directive
+instances are borrowed and shared. Cohesion's `IHttpContext` has no request-provider seam, so the
+scope belongs to this render, is not shared with other Web middleware, and does not inject HTTP
+context into services. The document-shell factory receives HTTP context directly.
+
+The earlier `ConfigureServerRendering`, `AddViuServerApplication(ViuApplication)`, and
+`UseViuServerRenderer(ViuApplication, ServerRenderRegistry, ...)` overloads remain available for
+caller-owned composition. They preserve their borrowed provider and caller-owned disposal behavior.
+The explicit `ServerRenderAdaptor<IHttpContext>` overloads remain the advanced seam for custom
+request roots, service providers, and scopes. Custom pipeline implementations supply an adaptor;
+the predicate-only overload requires a built Cohesion `WebApplication`.
+
+All renderer overloads produce HTML with `Cache-Control: no-store`, propagate request cancellation,
+and pass through non-GET requests, reserved resource paths, and requests rejected by the predicate.
+The document shell preserves `prefix -> progressive render -> teleport suffix` order. Destinations
+belong in the suffix; already emitted head/body content needs buffering or a prepass to change.
+Cohesion currently buffers responses, so a render/adaptor failure before transport commitment can
+clear the body, set 500, and propagate to the host exception boundary. A component error handled by
+the configured Viu error handler follows Viu's normal handled-error semantics.
+
+See the [Server overview](platforms/cohesion/Assimalign.Cohesion.Viu.Server/docs/OVERVIEW.md).
 
 ## Development server
 
@@ -156,8 +198,7 @@ cd HelloViu
 dotnet watch
 ```
 
-The generated application uses `ViuApplication.CreateBuilder()`, `ConfigureBrowser()`, explicit
-generated-component registration, and the Cohesion development server.
+The generated application uses `ViuApplication.CreateBuilder()`, `ConfigureBrowser()`, typed roots, generated component aggregates, typed routes, and the Cohesion development server.
 
 ## Local build
 
@@ -216,7 +257,7 @@ Viu comes from the same feed the same way. The one pin is the `Assimalign.Viu.Sd
 `Build.References.Packages.targets` reads the `Assimalign.Viu.Sdk` entry for every Viu library
 reference. viu's `ci-packages.yml` publishes `10.0.0-preview.0.ci.<run>` for every merge to viu
 `main` and `10.0.0-preview.0.pr.<pr>.<run>` for an open viu pull request, under the same retention
-rules. The current pin is `10.0.0-preview.0.ci.4` (viu `07facbc`). A CI build of this repository
+rules. The current pin is `10.0.0-preview.0.pr.379.5` (Viu PR #379). A CI build of this repository
 carries both pins into its package dependencies, so a consumer restores the whole set from the feed.
 
 ## CI packages
@@ -256,9 +297,11 @@ dotnet run --project Acme.Docs.AppHost -- --gateway local --mode describe
 ```
 
 The template creates Client, Web and AppHost projects. Web is an enabled Web resource with a
-public HTTP endpoint. Declare a `ViuClientReference` item on a Web executable referencing Server;
-the package turns it into a non-compiling client project reference and queries the client's
-evaluated target path. `AddViuApplication(o => o.UseClientOutput("Acme.Docs.Client"))` selects build manifests during
+public HTTP endpoint. Declare `<ProjectReference Include="../Client/Client.csproj" ViuClient="true" />` on Web.
+It participates in normal restore/build order, automatically sets `ReferenceOutputAssembly=false`
+and `Private=false`, and queries the Browser SDK's `GetViuBrowserClientInfo` target.
+`builder.Services.AddViuClient()` (or `options.UseClientOutput()` inside an explicit configuration
+callback) infers the single client and selects build manifests during
 development, through the `viu-client.json` document the build stages beside the executable and in
 an in-process member's resource content root, and a physical `wwwroot` beside the executable after
 publication. The bare health
@@ -291,3 +334,10 @@ using exactly the `AddWeb` plan. Generated `AddAllResources()` still calls `AddW
 `CohesionGatewayResourceKind` selection supports the overlay. Keep the Web executable's manifest
 application model as `Assimalign.Cohesion.Web.ApplicationModel`. See the
 [ApplicationModel overview](platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/docs/OVERVIEW.md).
+
+The pre-release `ViuClientReference` item is removed; builds print the new marked
+`ProjectReference` form. Explicit `UseClientOutput("Client.Assembly")` remains available.
+
+After packing, run `pwsh scripts/tests/Test-Templates.ps1` for isolated template builds,
+Web publication with a trimmed client, and a packed SSR consumer using a referenced Viu catalog.
+The lane keeps its hive, cache and generated projects under `_out` and treats warnings as errors.

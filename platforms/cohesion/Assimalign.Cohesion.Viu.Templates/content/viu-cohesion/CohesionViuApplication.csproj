@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="Assimalign.Cohesion.Viu.Hosting.Browser" Version="10.0.0-preview.1" />
+    <PackageReference Include="Assimalign.Cohesion.Viu.Routing" Version="10.0.0-preview.1" />
     <PackageReference Include="Assimalign.Cohesion.Viu.DevServer" Version="10.0.0-preview.1" />
   </ItemGroup>
 

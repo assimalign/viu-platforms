@@ -16,7 +16,7 @@ internal sealed record ViuClientDocument
 {
     internal const string FileName = "viu-client.json";
 
-    /// <summary>Gets the client assembly name declared by <c>ViuClientProject</c>.</summary>
+    /// <summary>Gets the Browser SDK's client assembly identity.</summary>
     [JsonPropertyName("client")]
     public string? Client { get; init; }
 
@@ -24,18 +24,26 @@ internal sealed record ViuClientDocument
     [JsonPropertyName("outputPath")]
     public string? OutputPath { get; init; }
 
+    /// <summary>Gets the runtime manifest path returned by the Browser SDK.</summary>
+    [JsonPropertyName("runtimeManifestPath")]
+    public string? RuntimeManifestPath { get; init; }
+
+    /// <summary>Gets the endpoints manifest path returned by the Browser SDK.</summary>
+    [JsonPropertyName("endpointsManifestPath")]
+    public string? EndpointsManifestPath { get; init; }
+
     /// <summary>Reads the document in <paramref name="directory"/> when it names the requested client.</summary>
     /// <param name="directory">The directory that may hold the document.</param>
     /// <param name="clientAssemblyName">The client assembly the caller hosts.</param>
-    /// <param name="outputPath">The client build output directory when found.</param>
+    /// <param name="clientDocument">The selected document when found.</param>
     /// <returns><see langword="true"/> when a document for the client exists.</returns>
     /// <exception cref="InvalidOperationException">The document exists but is not valid JSON.</exception>
     internal static bool TryRead(
         string directory,
-        string clientAssemblyName,
-        [NotNullWhen(true)] out string? outputPath)
+        string? clientAssemblyName,
+        [NotNullWhen(true)] out ViuClientDocument? clientDocument)
     {
-        outputPath = null;
+        clientDocument = null;
         string path = Path.Combine(directory, FileName);
         if (!File.Exists(path))
         {
@@ -53,13 +61,17 @@ internal sealed record ViuClientDocument
         }
 
         if (document is null
-            || !string.Equals(document.Client, clientAssemblyName, StringComparison.Ordinal)
-            || string.IsNullOrWhiteSpace(document.OutputPath))
+            || (clientAssemblyName is not null && !string.Equals(document.Client, clientAssemblyName, StringComparison.Ordinal)))
         {
             return false;
         }
 
-        outputPath = document.OutputPath;
+        if (string.IsNullOrWhiteSpace(document.Client) || string.IsNullOrWhiteSpace(document.OutputPath)
+            || string.IsNullOrWhiteSpace(document.RuntimeManifestPath) || string.IsNullOrWhiteSpace(document.EndpointsManifestPath))
+        {
+            throw new InvalidOperationException($"The Viu client document '{path}' is incomplete. Rebuild the Web project with a ProjectReference marked ViuClient=\"true\".");
+        }
+        clientDocument = document;
         return true;
     }
 }

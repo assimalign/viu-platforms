@@ -49,5 +49,5 @@ public static class ViuWebManifestProperties
     }
 
     private static void ThrowInvalid(string property) => throw new ArgumentException(
-        $"Viu Web manifest property '{property}' is missing or invalid. Declare the browser client with a ViuClientReference item on the Web executable and rebuild its resource.json.", "manifest");
+        $"Viu Web manifest property '{property}' is missing or invalid. Declare the browser client with a ProjectReference marked ViuClient=true on the Web executable and rebuild its resource.json.", "manifest");
 }

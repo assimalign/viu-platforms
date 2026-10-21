@@ -16,7 +16,7 @@ dotnet exec Assimalign.Cohesion.Viu.DevServer.dll
 `ASPNETCORE_URLS` has precedence over `--urls`. With neither setting, the server reserves an available IPv4 loopback port and binds an explicit URL. Every successful bind writes both `Now listening on: <url>` and `App url: <url>`; the first line is the Viu RunHost and dotnet-watch readiness contract.
 
 The executable uses `WebApplication.CreateBuilder()`, registers the Viu application through
-`AddViuApplication`, configures HTTP/1.1 through `builder.Server`, builds the Cohesion application,
+`builder.Services.AddViuClient(...)`, configures HTTP/1.1 through `builder.Server`, builds the Cohesion application,
 and installs it with `app.UseViuApplication()`. That bridge provides manifest-driven assets, SPA
 fallback, content types, compression selection, optional cross-origin isolation headers, and the
 browser-refresh surface.
@@ -45,3 +45,7 @@ Version `10.0.0-preview.1` builds and packs against the Cohesion build `global.j
 managed runtime closure remains self-sufficient except for the installed Microsoft.NETCore.App.
 The Server middleware also exposes the public client document and reserves resource control-plane
 routes. For deployable sites use `viu-cohesion-web`; this tool remains the development host.
+
+The development host supplies explicit content and manifest paths to `AddViuClient`; it does not
+infer a client project. Deployable Web sites use a normal `ProjectReference ViuClient="true"` and
+parameterless `AddViuClient()` instead. Both paths install `UseViuApplication()` after build.

@@ -4,10 +4,11 @@
     <CohesionApplicationName>__APPLICATION_NAME__</CohesionApplicationName>
     <CohesionResourceName>__APPLICATION_NAME__-web</CohesionResourceName>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-preview.1" />
-    <ViuClientReference Include="../CohesionViuSite.Client/CohesionViuSite.Client.csproj" />
+    <ProjectReference Include="../CohesionViuSite.Client/CohesionViuSite.Client.csproj" ViuClient="true" />
     <CohesionEndpoint Update="http" Public="true" DevPort="8080" />
   </ItemGroup>
 </Project>

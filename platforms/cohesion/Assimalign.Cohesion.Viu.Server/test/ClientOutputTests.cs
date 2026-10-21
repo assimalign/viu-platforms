@@ -1,7 +1,10 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 using Assimalign.Cohesion.Hosting.Resources;
+using Assimalign.Cohesion.Web.Hosting;
 
 using Shouldly;
 
@@ -11,6 +14,31 @@ namespace Assimalign.Cohesion.Viu.Server.Tests;
 
 public sealed class ClientOutputTests
 {
+    [Fact]
+    public async Task AddViuClientInfersTheDocumentAndCapturesResourceIdentityBeforeWebBuild()
+    {
+        using TemporaryApplication content = new();
+        content.WriteRootFile("viu-client.json", "{\"client\":\"Inferred.Client\",\"outputPath\":\"" +
+            content.RootPath.Replace("\\", "\\\\") +
+            "\",\"runtimeManifestPath\":\"runtime.json\",\"endpointsManifestPath\":\"endpoints.json\"}");
+        WebApplicationBuilder builder = WebApplication.CreateBuilder();
+        using (ResourceRuntime.CreateScope(new ResourceContext(
+            applicationName: "captured-app", resourceName: "captured-web", environmentName: "Local",
+            contentRootPath: content.RootPath)))
+        {
+            builder.Services.AddViuClient();
+        }
+
+        await using WebApplication application = builder.Build();
+
+        ViuApplicationConfiguration configuration = application.Context.Features.OfType<ViuApplicationFeature>()
+            .Single().Configuration;
+        configuration.ContentRootPath.ShouldBe(content.ContentRootPath);
+        configuration.RuntimeManifestPath.ShouldEndWith("runtime.json");
+        configuration.ClientConfiguration!.Application.ShouldBe("captured-app");
+        configuration.ClientConfiguration.Resource.ShouldBe("captured-web");
+    }
+
     [Fact(DisplayName = "Viu Cohesion Web - client output: the document in the ambient content root selects the client build output")]
     public void UseClientOutput_WithDocumentInAmbientContentRoot_ShouldSelectClientBuildOutput()
     {
@@ -20,7 +48,8 @@ public sealed class ClientOutputTests
         string output = client.RootPath + Path.DirectorySeparatorChar;
         contentRoot.WriteRootFile(
             "viu-client.json",
-            "{\"client\":\"Acme.Docs.Client\",\"outputPath\":\"" + output.Replace("\\", "\\\\") + "\"}");
+            "{\"client\":\"Acme.Docs.Client\",\"outputPath\":\"" + output.Replace("\\", "\\\\") +
+            "\",\"runtimeManifestPath\":\"custom-runtime.json\",\"endpointsManifestPath\":\"custom-endpoints.json\"}");
         using IDisposable scope = ResourceRuntime.CreateScope(new ResourceContext(
             applicationName: "docs",
             resourceName: "docs-web",
@@ -34,8 +63,12 @@ public sealed class ClientOutputTests
 
         // Assert
         options.ContentRootPath.ShouldBe(Path.Combine(output, "wwwroot"));
-        options.RuntimeManifestPath.ShouldBe(Path.Combine(output, "Acme.Docs.Client.staticwebassets.runtime.json"));
-        options.EndpointsManifestPath.ShouldBe(Path.Combine(output, "Acme.Docs.Client.staticwebassets.endpoints.json"));
+        options.RuntimeManifestPath.ShouldBe("custom-runtime.json");
+        options.EndpointsManifestPath.ShouldBe("custom-endpoints.json");
+        ViuApplicationOptions inferred = new();
+        inferred.UseClientOutput();
+        inferred.ContentRootPath.ShouldBe(options.ContentRootPath);
+        inferred.RuntimeManifestPath.ShouldBe(options.RuntimeManifestPath);
     }
 
     [Fact(DisplayName = "Viu Cohesion Web - client output: a document for another client is not selected")]

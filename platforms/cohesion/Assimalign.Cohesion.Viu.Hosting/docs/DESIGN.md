@@ -92,19 +92,14 @@ application establishes the ownership boundary instead. Disposal first asks the 
 then disposes the runtime, provider, and configuration manager. Disposal is best-effort across all
 three owned resources and aggregates multiple failures.
 
-The package uses no `InternalsVisibleTo`, runtime XML parsing, or assembly scanning.
+The package uses no runtime XML parsing or assembly scanning. Compiler-generated Viu catalog
+publication supplies direct delegates without runtime metadata discovery.
 
 ## Service activation
 
-`Build()` accepts every descriptor the Cohesion container accepts, including implementation-type
-registrations. An earlier revision rejected any descriptor with `ImplementationType` set, which
-made `AddSingleton<TService, TImplementation>()`, the most common .NET registration, fail at build
-time. The container's type-based overloads are annotated with
-`[DynamicallyAccessedMembers(PublicConstructors)]`, so trimming preserves the constructors they
-name, and the provider selects its reflection-invoke engine whenever
-`RuntimeFeature.IsDynamicCodeCompiled` is false, so WebAssembly never emits IL. Component
-activation is unaffected: Viu components are still created only by the activators on their
-generated registrations.
+Package registrations use explicit instances and factories. Generated component activators and
+aggregate catalog delegates are compiler-known; no runtime assembly inspection or constructor
+activation is added by this integration.
 
 ## Client configuration boundary
 
@@ -123,3 +118,18 @@ flowchart LR
 
 Hosting packages still enumerate Cohesion's `ServiceProviderBuilder.Container` when they need to
 find a registered options instance, as `ConfigureBrowser` and `AddRouting` do.
+
+With no explicit factory or component contributions, `ViuApplicationBuilder` populates the
+compile-time generated aggregate by default. `services.AddComponents()` explicitly requests that
+aggregate and is idempotent per factory, including application and referenced Viu assemblies.
+Explicit callbacks and `AddComponent` suppress the implicit aggregate; combine either with
+`AddComponents()` when both are wanted. An options-assigned factory stays first, with explicit
+contributions as fallback; a service-registered `IComponentFactory` replaces composition entirely.
+`AddRouting` contributes built-in router components; call `AddComponents()` explicitly to
+include the generated aggregate alongside routing or other feature contributions.
+
+Component contributions also register a lazy `IComponentFactory` service for Web compositions.
+A shared internal composition descriptor lets `ViuApplicationBuilder.Build` set the final options
+factory after all callbacks, preserving ordering and replacement semantics. Generated population
+runs only at first factory resolution. `UseRootComponent<TComponent>()` uses the static definition
+contract and never activates a component.

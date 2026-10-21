@@ -12,7 +12,7 @@ internal static class DevServerApplicationFactory
         IReadOnlyList<DevServerAddress> addresses)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
-        builder.AddViuApplication(viu =>
+        builder.Services.AddViuClient(viu =>
         {
             viu.ContentRootPath = options.ContentRootPath;
             viu.EndpointsManifestPath = options.EndpointsManifestPath;

@@ -58,6 +58,8 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
     /// factory; an explicitly assigned factory takes precedence over them. An unset state registry
     /// or directive resolver is resolved from the built provider, and unset warning and error
     /// handlers default to standard error.
+    /// With no explicit factory or component contributions, generated component catalogs are the
+    /// default. AddComponents() explicitly requests them alongside other contributions.
     /// </remarks>
     public ApplicationOptions ApplicationOptions { get; }
 
@@ -72,6 +74,13 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
         configure(ApplicationOptions);
         return this;
     }
+
+    /// <summary>Selects a generated component definition as the application root.</summary>
+    /// <typeparam name="TComponent">The component definition to describe without activating it.</typeparam>
+    /// <returns>This builder.</returns>
+    public ViuApplicationBuilder UseRootComponent<TComponent>()
+        where TComponent : IComponentDefinition =>
+        ConfigureApplication(options => options.RootComponent = ComponentNode.For<TComponent>());
 
     /// <summary>Selects the host-specific Viu runtime factory.</summary>
     /// <param name="hostFactory">The explicit, reflection-free host factory.</param>
@@ -175,12 +184,9 @@ public sealed class ViuApplicationBuilder : IApplicationBuilder, IHostBuilder
     {
         // Captured here, after every ConfigureApplication call, so a later assignment on the
         // mutable options object cannot change the composed factory.
-        IComponentFactory? explicitComponents = ApplicationOptions.Components;
-        ComponentFactory defaultComponents = _defaultComponents;
-        Services.TryAddSingleton<IComponentFactory>(services => ViuComponentComposition.Compose(
-            explicitComponents,
-            defaultComponents,
-            services.GetServices<ViuComponentContribution>()));
+        ViuComponentComposition composition = ViuComponentComposition.GetOrAdd(Services);
+        composition.ExplicitComponents = ApplicationOptions.Components;
+        composition.DefaultComponents = _defaultComponents;
     }
 
     private static void DisposeServiceProvider(IServiceProvider serviceProvider)

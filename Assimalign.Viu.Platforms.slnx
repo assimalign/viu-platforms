@@ -14,6 +14,7 @@
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Routing/src/Assimalign.Cohesion.Viu.Routing.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Routing/test/Assimalign.Cohesion.Viu.Routing.Tests.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Server/src/Assimalign.Cohesion.Viu.Server.csproj" />
+    <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Server/generator/Assimalign.Cohesion.Viu.Server.Generator.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.Server/test/Assimalign.Cohesion.Viu.Server.Tests.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/src/Assimalign.Cohesion.Viu.DevServer.csproj" />
     <Project Path="platforms/cohesion/Assimalign.Cohesion.Viu.DevServer/test/Assimalign.Cohesion.Viu.DevServer.Tests.csproj" />

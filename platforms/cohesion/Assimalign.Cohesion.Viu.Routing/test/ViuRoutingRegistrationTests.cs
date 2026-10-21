@@ -21,6 +21,48 @@ namespace Assimalign.Cohesion.Viu.Routing.Tests;
 public sealed class ViuRoutingRegistrationTests
 {
     [Fact]
+    public async Task ExplicitCatalogCallbacksStillWorkWithRoutingAndPublishedGeneratedCatalogs()
+    {
+        GeneratedComponentCatalogs.Register("Cohesion.Routing.Tests",
+            static components => components.Register(HomePage.Registration));
+        ViuApplicationBuilder builder = CreateBuilder(new RecordingHostFactory());
+        builder.Services.AddComponents(static components => components.Register(HomePage.Registration));
+        builder.Services.AddRouting(routing => routing.Routes.Add<HomePage>("/", "Home"));
+
+        await using ViuApplication application = builder.Build();
+
+        application.Context.Services.GetRequiredService<IComponentFactory>()
+            .Resolve(HomePage.Registration.Reference).ShouldBeSameAs(HomePage.Registration);
+    }
+
+    [Fact]
+    public async Task RouteCollectionConveniencesWorkThroughTheOptionsList()
+    {
+        ViuApplicationBuilder builder = CreateBuilder(new RecordingHostFactory());
+        builder.Services.AddRouting(routing =>
+        {
+            routing.Routes.Add("/", "HomePage", "Home");
+            routing.Routes.Add<HomePage>("/typed", "Typed home");
+        });
+        await using ViuApplication application = builder.Build();
+        ViuRouter router = application.Context.Services.GetRequiredService<ViuRouter>();
+
+        router.Resolve("/").IsMatched.ShouldBeTrue();
+        router.Resolve("/").Meta["title"].ShouldBe("Home");
+        router.Resolve("/typed").IsMatched.ShouldBeTrue();
+        router.Resolve("/typed").Meta["title"].ShouldBe("Typed home");
+        ViuRoutingOptions options = application.Context.Services.GetRequiredService<ViuRoutingOptions>();
+        options.Routes[1].Component.ShouldBeOfType<ComponentNode>().Component
+            .ShouldBe(HomePage.Registration.Reference);
+    }
+
+    private sealed class HomePage : IComponentDefinition
+    {
+        public static ComponentRegistration Registration { get; } = ComponentRegistration.Define(
+            "RegisteredHomePage", new ComponentContract(), static _ => static _ => new TextNode("home"));
+    }
+
+    [Fact]
     public async Task AddRoutingRegistersOneRouterWithHistoryRoutesAndComponents()
     {
         RouteRecord home = new("/", component: new TextNode("home"));

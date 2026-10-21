@@ -62,7 +62,7 @@ fenced-code language classes, image alternate text, and duplicate heading slugs.
 keeps deep Markdown trees off the managed call stack. Per-render heading state never leaks across
 pages, and constructor snapshots prevent later option mutations from changing a renderer.
 
-The brief's `VirtualNodeFactory` is absent from both the published Viu beta.12 surface and the
+The brief's `VirtualNodeFactory` is absent from both the published Viu surface and the
 read-only Viu sources. Supported `ElementNode`, `TextNode`, `FragmentNode`, and `ComponentNode`
 constructors are the public construction seam; no replacement factory or upstream change is added.
 
@@ -82,7 +82,7 @@ Its output remains ordinary HTML, so it does not confer component navigation sem
 ## Components, routing, and ownership
 
 The code-first components declare static contracts and registrations, with explicit parameter
-binding at setup/render. `[Parameter]` documents the template surface; Viu beta.12 only generates
+binding at setup/render. `[Parameter]` documents the template surface; Viu only generates
 attribute binding for single-file components, so runtime registration never scans these attributes.
 `MarkdownComponents.Register` adds type and name references and preserves caller registrations.
 `AddMarkdownContent` contributes it through `builder.Services.AddComponents` instead of mutating
@@ -99,7 +99,7 @@ Each instance belongs to one application event loop.
 
 Routes carry fixed page arguments and unique names (`markdown:` plus the catalog route), with an
 optional parent layout and a separately named catch-all. Page and layout records use plain catalog
-paths; default children use an empty path so outlet depth remains correct. Viu beta.12 separates URL
+paths; default children use an empty path so outlet depth remains correct. Viu separates URL
 suffixes before matching: `RouteLocation.Path` is the clean path, `RawQuery`/`Query` expose the query,
 `Fragment` is raw text without `#`, and `FullPath` retains the raw suffix. Fixed page arguments and
 catch-all arguments therefore contain only paths. Named routes resolve directly to catalog paths.
@@ -140,4 +140,11 @@ compatibility analysis; it is not a claim that a NativeAOT or browser-WASM AOT p
 Content-root normalization uses `MSBuild.NormalizePath(projectDirectory, contentRoot)` rather than
 the two-argument `Path.GetFullPath`, because the latter is unavailable in Visual Studio's .NET
 Framework MSBuild. This affects only path evaluation; the source generator's catalog contract is
-unchanged. The family now composes Cohesion preview.3 through the complete `.local` feed identity.
+unchanged. Cohesion and Viu identities follow the repository's `global.json` CI pins.
+
+Application components can use `AddComponents()` and typed roots/routes from the new Viu
+seams. Markdown's explicit component contribution remains additive; request generated catalogs
+explicitly when composing it without `AddRouting`. Web-host SSR now composes through
+`services.AddViuServerRendering` with one render-owned DI scope. Immutable Markdown catalogs
+can be singleton services; request-specific router location and root selection still belong to the
+application's explicit adaptor policy. This package adds no Web dependency.

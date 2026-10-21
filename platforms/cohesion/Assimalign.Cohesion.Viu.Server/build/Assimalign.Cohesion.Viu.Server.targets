@@ -1,14 +1,22 @@
 <Project>
-  <!-- A ViuClientReference item names the browser client project. It becomes a non-compiling
-       project reference: build order and the client's asset manifests, never its output
+  <!-- A normal ProjectReference marked ViuClient="true" participates in restore and build order,
+       without compiling against the client's assembly. Private="false" prevents partial assets
+       from flowing into the Web output. The Browser SDK's query owns all client output paths.
+       The normal items supply the restore graph; these updates govern build-time references. -->
+  <ItemGroup>
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('ViuClient', 'true'))">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(_ViuClientRemoveProperties)</GlobalPropertiesToRemove>
+    </ProjectReference>
+    <_ViuClientProject Include="@(ProjectReference->WithMetadataValue('ViuClient', 'true'))" />
+  </ItemGroup>
+
+  <!-- Build order and the client's asset manifests, never its output
        assembly. Private="false" keeps the client's content items from flowing transitively into
        the Web executable's build output: a partial wwwroot beside the executable would make
        UseClientOutput select the physical layout and miss the framework assets that only the
        client's own build output or ViuPublishClient provide. -->
-  <ItemGroup Condition="'@(ViuClientReference)' != ''">
-    <ProjectReference Include="@(ViuClientReference)" ReferenceOutputAssembly="false" Private="false"
-                      GlobalPropertiesToRemove="$(_ViuClientRemoveProperties)" />
-  </ItemGroup>
 
   <!-- viu-client.json names the client and its build output directory. As copy-to-output content
        it sits beside the Web executable out of process and is staged into the member's resource
@@ -22,31 +30,46 @@
     <_ViuClientPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client-publish'))</_ViuClientPublishDir>
   </PropertyGroup>
 
-  <Target Name="ViuValidateClientReference" BeforeTargets="PrepareForBuild;CoreCompile">
-    <Error Condition="'$(ViuClientProject)' != ''"
-           Text="ViuClientProject is not supported. Declare the browser client with a ViuClientReference item: &lt;ViuClientReference Include=&quot;$(ViuClientProject)&quot; /&gt;." />
-    <Error Condition="'@(ViuClientReference->Count())' > '1'"
-           Text="A Web executable declares exactly one ViuClientReference; found @(ViuClientReference->Count()): @(ViuClientReference, ', ')." />
-    <Error Condition="'@(ViuClientReference)' != '' and !Exists('%(ViuClientReference.FullPath)')"
-           Text="ViuClientReference '%(ViuClientReference.Identity)' does not exist." />
+  <!-- NuGet intentionally excludes package imports while constructing its restore graph.
+       Normal references must stay in that graph to restore Browser clients and component
+       libraries, but their SDK framework references do not belong to the Web compilation. Filter only
+       those transitive framework identities at the asset boundary; direct references remain.
+       This also works on a package consumer's very first restore/build. -->
+  <Target Name="ViuIsolateFrameworkReferences" AfterTargets="ResolvePackageAssets"
+          BeforeTargets="AddTransitiveFrameworkReferences">
+    <ItemGroup>
+      <TransitiveFrameworkReference Remove="Assimalign.Viu.App;Assimalign.Viu.App.Browser" />
+    </ItemGroup>
   </Target>
 
-  <!-- GetTargetPath returns the client's evaluated TargetPath, including its own
-       AssemblyName, TargetDir, framework and output-path customizations. The target runs
+  <Target Name="ViuValidateClientReference" BeforeTargets="PrepareForBuild;CoreCompile;_GenerateRestoreGraphProjectEntry">
+    <Error Condition="'$(ViuClientProject)' != '' or '@(ViuClientReference)' != ''"
+           Text="ViuClientReference and ViuClientProject are no longer supported. Use &lt;ProjectReference Include=&quot;../Client/Client.csproj&quot; ViuClient=&quot;true&quot; /&gt;; restore and build the Web project normally." />
+    <Error Condition="'@(_ViuClientProject->Count())' > '1'"
+           Text="A Web executable supports exactly one ProjectReference marked ViuClient=&quot;true&quot;; found @(_ViuClientProject->Count()): @(_ViuClientProject, ', ')." />
+    <Error Condition="'@(_ViuClientProject)' != '' and !Exists('%(_ViuClientProject.FullPath)')"
+           Text="Viu client ProjectReference '%(_ViuClientProject.Identity)' does not exist." />
+  </Target>
+
+  <!-- The public Browser SDK identity query returns evaluated output and manifest paths. It runs
        before AssignTargetPaths so the document exists before content is copied. -->
   <Target Name="ViuResolveClientOutput"
           BeforeTargets="AssignTargetPaths;GenerateBuildRuntimeConfigurationFiles;CohesionCreateResourceManifest"
           DependsOnTargets="ViuValidateClientReference"
-          Condition="'@(ViuClientReference)' != ''">
-    <MSBuild Projects="@(ViuClientReference)" Targets="GetTargetPath"
+          Condition="'@(_ViuClientProject)' != ''">
+    <MSBuild Projects="@(_ViuClientProject)" Targets="GetViuBrowserClientInfo" SkipNonexistentTargets="true"
              Properties="Configuration=$(Configuration)" RemoveProperties="$(_ViuClientRemoveProperties)">
       <Output TaskParameter="TargetOutputs" ItemName="_ViuClientTarget" />
     </MSBuild>
-    <Error Condition="'@(_ViuClientTarget->Count())' != '1'" Text="ViuClientReference must produce exactly one browser target assembly." />
+    <Error Condition="'@(_ViuClientTarget->Count())' != '1'" Text="The ViuClient ProjectReference must use Assimalign.Viu.Sdk.Browser and return exactly one client from GetViuBrowserClientInfo." />
+    <Error Condition="'%(_ViuClientTarget.IsViuBrowserApplication)' != 'true' or '%(_ViuClientTarget.AssemblyName)' == '' or '%(_ViuClientTarget.TargetFramework)' == '' or '%(_ViuClientTarget.TargetPath)' == '' or '%(_ViuClientTarget.OutputDirectory)' == '' or '%(_ViuClientTarget.StaticWebAssetsRuntimeManifestPath)' == '' or '%(_ViuClientTarget.StaticWebAssetsEndpointsManifestPath)' == ''"
+           Text="The ViuClient ProjectReference is not a valid Viu Browser application: GetViuBrowserClientInfo must supply browser identity, target and static-web-assets manifest paths." />
     <PropertyGroup>
-      <_ViuClientAssembly>@(_ViuClientTarget->'%(Filename)')</_ViuClientAssembly>
-      <_ViuClientOutput>@(_ViuClientTarget->'%(RootDir)%(Directory)')</_ViuClientOutput>
-      <_ViuClientDocument>{"client":"$(_ViuClientAssembly)","outputPath":"$(_ViuClientOutput.Replace('\', '\\'))"}</_ViuClientDocument>
+      <_ViuClientAssembly>@(_ViuClientTarget->'%(AssemblyName)')</_ViuClientAssembly>
+      <_ViuClientOutput>@(_ViuClientTarget->'%(OutputDirectory)')</_ViuClientOutput>
+      <_ViuClientRuntimeManifest>@(_ViuClientTarget->'%(StaticWebAssetsRuntimeManifestPath)')</_ViuClientRuntimeManifest>
+      <_ViuClientEndpointsManifest>@(_ViuClientTarget->'%(StaticWebAssetsEndpointsManifestPath)')</_ViuClientEndpointsManifest>
+      <_ViuClientDocument>{"client":"$(_ViuClientAssembly)","outputPath":"$(_ViuClientOutput.Replace('\', '\\').Replace('&quot;', '\&quot;'))","runtimeManifestPath":"$(_ViuClientRuntimeManifest.Replace('\', '\\').Replace('&quot;', '\&quot;'))","endpointsManifestPath":"$(_ViuClientEndpointsManifest.Replace('\', '\\').Replace('&quot;', '\&quot;'))"}</_ViuClientDocument>
     </PropertyGroup>
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_ViuClientDocumentPath)'))" />
     <WriteLinesToFile File="$(_ViuClientDocumentPath)" Lines="$(_ViuClientDocument)" Overwrite="true" WriteOnlyWhenDifferent="true" />
@@ -62,17 +85,17 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="ViuPublishClient" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="ViuValidateClientReference" Condition="'@(ViuClientReference)' != ''">
+  <Target Name="ViuPublishClient" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="ViuResolveClientOutput" Condition="'@(_ViuClientProject)' != ''">
     <!-- The browser SDK supplies its own runtime and trimming settings. Keep the
          explicitly supplied staging PublishDir: RemoveProperties also removes
          properties supplied on this MSBuild task, not just inherited globals. -->
-    <MSBuild Projects="@(ViuClientReference)" Targets="Restore"
+    <MSBuild Projects="@(_ViuClientProject)" Targets="Restore"
              Properties="Configuration=Release;PublishDir=$(_ViuClientPublishDir)"
              RemoveProperties="$(_ViuClientPublishRemoveProperties)" />
-    <MSBuild Projects="@(ViuClientReference)" Targets="Publish"
+    <MSBuild Projects="@(_ViuClientProject)" Targets="Publish"
              Properties="Configuration=Release;PublishDir=$(_ViuClientPublishDir)"
              RemoveProperties="$(_ViuClientPublishRemoveProperties)" />
-    <Error Condition="!Exists('$(_ViuClientPublishDir)wwwroot/index.html')" Text="ViuClientReference must publish wwwroot/index.html." />
+    <Error Condition="!Exists('$(_ViuClientPublishDir)wwwroot/index.html')" Text="The ViuClient ProjectReference must publish wwwroot/index.html." />
     <ItemGroup>
       <_ViuPublishedClientAsset Include="$(_ViuClientPublishDir)wwwroot/**/*" />
       <ResolvedFileToPublish Include="@(_ViuPublishedClientAsset)">

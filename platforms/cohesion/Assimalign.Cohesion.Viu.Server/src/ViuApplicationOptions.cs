@@ -20,7 +20,7 @@ public sealed class ViuApplicationOptions
     public string? ClientConfigurationPath { get; set; } = "/_cohesion/client.json";
 
     /// <summary>Selects the published physical root, or the client build output and its asset manifests.</summary>
-    /// <param name="clientAssemblyName">The client assembly name declared by the ViuClientProject project.</param>
+    /// <param name="clientAssemblyName">The assembly identity of the marked ViuClient ProjectReference.</param>
     /// <exception cref="InvalidOperationException">
     /// No published root exists and no <c>viu-client.json</c> document for the client exists in the
     /// ambient resource content root or beside the executable.
@@ -35,6 +35,14 @@ public sealed class ViuApplicationOptions
     public void UseClientOutput(string clientAssemblyName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(clientAssemblyName);
+        UseClientOutputCore(clientAssemblyName);
+    }
+
+    /// <summary>Selects the sole marked client from viu-client.json, or the published physical root.</summary>
+    public void UseClientOutput() => UseClientOutputCore(null);
+
+    private void UseClientOutputCore(string? clientAssemblyName)
+    {
         string publishedRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
         if (File.Exists(Path.Combine(publishedRoot, "index.html")))
         {
@@ -46,18 +54,18 @@ public sealed class ViuApplicationOptions
 
         foreach (string directory in ClientDocumentDirectories())
         {
-            if (!ViuClientDocument.TryRead(directory, clientAssemblyName, out string? output))
+            if (!ViuClientDocument.TryRead(directory, clientAssemblyName, out ViuClientDocument? document))
             {
                 continue;
             }
-            ContentRootPath = Path.Combine(output, "wwwroot");
-            RuntimeManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.runtime.json");
-            EndpointsManifestPath = Path.Combine(output, clientAssemblyName + ".staticwebassets.endpoints.json");
+            ContentRootPath = Path.Combine(document.OutputPath!, "wwwroot");
+            RuntimeManifestPath = document.RuntimeManifestPath;
+            EndpointsManifestPath = document.EndpointsManifestPath;
             return;
         }
 
         throw new InvalidOperationException(
-            $"No '{ViuClientDocument.FileName}' document for client '{clientAssemblyName}' exists in the resource content root or beside the executable. Set ViuClientProject on the Web executable and build it, or publish its wwwroot.");
+            $"No '{ViuClientDocument.FileName}' document for client '{clientAssemblyName ?? "(inferred)"}' exists in the resource content root or beside the executable. Declare a ProjectReference with ViuClient=\"true\" on the Web executable and build it, or publish its wwwroot.");
     }
 
     private static IEnumerable<string> ClientDocumentDirectories()

@@ -82,25 +82,47 @@ public static class WebApplicationViuExtensions
         /// <exception cref="ArgumentException">Thrown when a configured path is invalid.</exception>
         /// <remarks>
         /// Registration captures an immutable configuration feature and the development-refresh
-        /// environment at builder time. It performs no service-container registration or
-        /// request-time service lookup. Call
-        /// <c>UseViuApplication()</c> on the built Cohesion application to install it.
+        /// environment during composition. A concrete Web builder forwards to its service
+        /// collection; custom builders receive an application feature directly. Call
+        /// <c>UseViuApplication()</c> on the built Cohesion application to install it. Prefer
+        /// <c>builder.Services.AddViuClient()</c> to infer a marked client project.
         /// </remarks>
         public IWebApplicationBuilder AddViuApplication(Action<ViuApplicationOptions>? configure = null)
         {
             ArgumentNullException.ThrowIfNull(builder);
 
+            if (builder is WebApplicationBuilder webBuilder)
+            {
+                webBuilder.Services.AddViuClient(configure ?? (static _ => { }));
+                return builder;
+            }
+
             ViuApplicationOptions options = new();
             configure?.Invoke(options);
 
-            ViuApplicationConfiguration configuration = ViuApplicationConfiguration.Create(
-                options, (builder as WebApplicationBuilder)?.Environment.Name);
+            ViuApplicationConfiguration configuration = ViuApplicationConfiguration.Create(options);
             return builder.AddFeature(new ViuApplicationFeature(configuration));
         }
     }
 
     extension(IWebApplicationPipelineBuilder builder)
     {
+        /// <summary>Installs server rendering composed by AddViuServerRendering in the Web provider.</summary>
+        /// <param name="shouldRender">Optional predicate; omitted means every non-reserved GET.</param>
+        /// <returns>The same pipeline builder.</returns>
+        /// <remarks>Each rendered request owns fresh Viu/SSR contexts and an asynchronous DI scope.</remarks>
+        public IWebApplicationPipelineBuilder UseViuServerRenderer(Func<IHttpContext, bool>? shouldRender = null)
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+            if (builder is not WebApplication application)
+            {
+                throw new InvalidOperationException("UseViuServerRenderer() requires a built Cohesion WebApplication. Custom pipelines can supply a ServerRenderAdaptor<IHttpContext>.");
+            }
+            ViuServerRendering rendering = application.Context.ServiceProvider.GetService<ViuServerRendering>()
+                ?? throw new InvalidOperationException("Register builder.Services.AddViuServerRendering(...) before UseViuServerRenderer().");
+            return builder.Use(rendering.CreateMiddleware(shouldRender));
+        }
+
         /// <summary>
         /// Renders the root composed by a Cohesion-hosted Viu application for matching requests.
         /// </summary>

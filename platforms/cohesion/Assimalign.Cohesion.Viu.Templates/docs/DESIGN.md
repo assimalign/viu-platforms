@@ -22,7 +22,8 @@ the runtime dependency closure.
 
 ## Package-feed contract
 
-The generated `NuGet.config` maps the tracked unreleased Assimalign lines to sibling local feeds.
+The generated `NuGet.config` maps Viu and Cohesion to the authenticated Assimalign GitHub Packages
+feed and platform/gateway packages to local feeds.
 `assimalignRoot` substitutes their common parent directory; nuget.org supplies public dependencies.
 No credential is embedded. Remote publication is a separate release concern.
 
@@ -39,9 +40,12 @@ or runtime source parsing.
 
 `viu-cohesion-web` keeps browser runtime code in Client, enabled Web hosting and client publishing
 in Web, and orchestration in AppHost. The solution explicitly pins all five SDKs in its chain.
-The `__COHESION_PACKAGE_VERSION__` template symbol defaults to the tracked `.local` identity;
+The `__COHESION_PACKAGE_VERSION__` template symbol defaults to the repository's tracked Cohesion CI identity;
 `assimalignRoot` substitutes portable local-feed paths without hard-coding a developer machine.
-The AppHost pins platform gateways to their separate canonical preview.3 package identity.
+AppHost defaults to the built-in Local gateway. Kubernetes is opt-in: set `CohesionGateways` to
+`Local;Kubernetes` and `CohesionPlatformsVersion` to gateway packages built against the same
+Cohesion pin. Older local preview.3 packages require a different Cohesion identity and cannot be
+mixed with this CI pin.
 
 Project references flow in this direction:
 
@@ -64,3 +68,14 @@ endpoint has development port 8080 so standalone `dotnet run` also binds a liste
 Ordinary ARM64 publication includes the client. The current Cohesion image resolver still accepts
 only Linux x64 RIDs and requires NativeAOT for Release images; ARM64 OCI publication is an upstream
 follow-up, not a change of the site's Web application model.
+
+Both templates request generated aggregates through `AddComponents()`, choose typed roots with
+`UseRootComponent<App>()` and add typed Counter routes through `routing.Routes.Add<Counter>`.
+Web registers `services.AddViuClient()` and infers its sole marked client. Project references
+participate in restore before build; Server metadata suppresses compile references. Explicit
+`ViuClientReference` items are retired. Server rendering can be added with
+`services.AddViuServerRendering` and the predicate-only `UseViuServerRenderer` overload.
+
+After packing, run `pwsh scripts/tests/Test-Templates.ps1` for isolated template builds,
+Web publication with a trimmed client, and a packed SSR consumer using a referenced Viu catalog.
+The lane keeps its hive, cache and generated projects under `_out` and treats warnings as errors.
