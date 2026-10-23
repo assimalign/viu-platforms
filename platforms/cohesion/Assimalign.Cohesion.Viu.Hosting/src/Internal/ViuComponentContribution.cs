@@ -7,11 +7,11 @@ namespace Assimalign.Cohesion.Viu.Hosting;
 /// <summary>One ordered component-registration callback applied when the application is built.</summary>
 internal sealed class ViuComponentContribution
 {
-    public ViuComponentContribution(Action<ComponentFactory> register)
+    public ViuComponentContribution(Action<IServiceProvider, ComponentFactory> register)
     {
         ArgumentNullException.ThrowIfNull(register);
         Register = register;
     }
 
-    public Action<ComponentFactory> Register { get; }
+    public Action<IServiceProvider, ComponentFactory> Register { get; }
 }

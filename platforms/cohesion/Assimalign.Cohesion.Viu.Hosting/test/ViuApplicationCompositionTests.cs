@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,6 +16,101 @@ namespace Assimalign.Cohesion.Viu.Hosting.Tests;
 
 public sealed class ViuApplicationCompositionTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddComponents_ProviderCallbacks_UseBuiltServicesOnceInContributionOrder(bool assignFactory)
+    {
+        ComponentRegistration first = CreateRegistration("ProviderFirst");
+        ComponentRegistration second = CreateRegistration("ProviderSecond");
+        ComponentRegistration third = CreateRegistration("ProviderThird");
+        ComponentRegistration assigned = CreateRegistration("ProviderFirst");
+        CapturingHostFactory hostFactory = new();
+        ViuApplicationBuilder builder = CreateConfiguredBuilder(hostFactory);
+        List<string> calls = [];
+        IServiceProvider? callbackProvider = null;
+
+        builder.Services.AddComponents((serviceProvider, components) =>
+        {
+            callbackProvider = serviceProvider;
+            components.Register(serviceProvider.GetRequiredService<ComponentRegistration>());
+            calls.Add("first");
+        });
+        builder.Services.AddComponents(components =>
+        {
+            components.Register(second);
+            calls.Add("second");
+        });
+        builder.Services.AddComponents((serviceProvider, components) =>
+        {
+            serviceProvider.ShouldBeSameAs(callbackProvider);
+            components.Register(third);
+            calls.Add("third");
+        });
+        // Later service registrations must be available without constructing an interim provider.
+        builder.Services.AddSingleton(first);
+        if (assignFactory)
+        {
+            ComponentFactory explicitFactory = new();
+            explicitFactory.Register(assigned);
+            builder.ConfigureApplication(options => options.Components = explicitFactory);
+        }
+        calls.ShouldBeEmpty();
+
+        await using ViuApplication application = builder.Build();
+
+        IComponentFactory resolved = application.Context.Services.GetRequiredService<IComponentFactory>();
+        callbackProvider.ShouldNotBeNull().GetRequiredService<ComponentRegistration>().ShouldBeSameAs(first);
+        callbackProvider.GetRequiredService<IComponentFactory>().ShouldBeSameAs(resolved);
+        resolved.ShouldBeSameAs(hostFactory.Options!.Components);
+        resolved.Resolve(first.Reference).ShouldBeSameAs(assignFactory ? assigned : first);
+        resolved.Resolve(second.Reference).ShouldBeSameAs(second);
+        resolved.Resolve(third.Reference).ShouldBeSameAs(third);
+        application.Context.Services.GetRequiredService<IComponentFactory>().ShouldBeSameAs(resolved);
+        calls.ShouldBe(["first", "second", "third"]);
+    }
+
+    [Fact]
+    public void AddComponents_ProviderCallbackFailure_DisposesResolvedDependencies()
+    {
+        DisposableDependency dependency = new();
+        InvalidOperationException failure = new("Component configuration failed.");
+        CapturingHostFactory hostFactory = new();
+        ViuApplicationBuilder builder = CreateConfiguredBuilder(hostFactory);
+        builder.Services.AddSingleton<DisposableDependency>(_ => dependency);
+        builder.Services.AddComponents((serviceProvider, _) =>
+        {
+            serviceProvider.GetRequiredService<DisposableDependency>().ShouldBeSameAs(dependency);
+            throw failure;
+        });
+
+        Should.Throw<InvalidOperationException>(builder.Build).ShouldBeSameAs(failure);
+
+        dependency.DisposeCount.ShouldBe(1);
+        hostFactory.Options.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AddComponents_NullCallbacks_ThrowBeforeRegisteringContributions()
+    {
+        ViuApplicationBuilder builder = ViuApplication.CreateBuilder();
+        int registrations = builder.Services.Container.Count;
+
+        // The original null-literal call must continue to bind to the original overload.
+        Should.Throw<ArgumentNullException>(() => builder.Services.AddComponents(null!));
+        Should.Throw<ArgumentNullException>(() => builder.Services.AddComponents(
+            (Action<IServiceProvider, ComponentFactory>)null!));
+
+        builder.Services.Container.Count.ShouldBe(registrations);
+    }
+
+    private sealed class DisposableDependency : IDisposable
+    {
+        public int DisposeCount { get; private set; }
+
+        public void Dispose() => DisposeCount++;
+    }
+
     static ViuApplicationCompositionTests() => GeneratedComponentCatalogs.Register(
         "Cohesion.Hosting.Tests", static components => components.Register(GeneratedRoot.Registration));
 
