@@ -45,6 +45,26 @@ stops or fails. It throws when routing was not registered.
 
 The router reads the options once, when it is first resolved.
 
+When options depend on registered services, use the provider-aware action:
+
+```csharp
+builder.Services.AddRouting((serviceProvider, routing) =>
+{
+    var catalog = serviceProvider.GetRequiredService<MyRouteCatalog>();
+    foreach (RouteRecord route in catalog.Routes)
+    {
+        routing.Routes.Add(route);
+    }
+});
+```
+
+This overload accepts `Action<IServiceProvider, ViuRoutingOptions>`; the callback does not return
+a router. Provider-aware callbacks run once when the singleton router is first resolved, in
+registration order, after all original registration-time callbacks. They share the same options
+instance and run before `AddRoutes` factories, router construction, and `ConfigureRouter` callbacks.
+They can resolve services registered later. The provider is the root service resolver; do not
+resolve the router while configuring its options.
+
 ## Contributed routes
 
 A module contributes routes without receiving the application's route list. For example, with

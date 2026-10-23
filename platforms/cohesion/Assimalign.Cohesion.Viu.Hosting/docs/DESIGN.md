@@ -46,6 +46,14 @@ one internal `ViuComponentContribution` singleton, and the composition factory a
 `GetServices<ViuComponentContribution>()` in registration order on first `IComponentFactory`
 resolution. `Build()` performs that resolution, so conflicts surface while building.
 
+`AddComponents(Action<IServiceProvider, ComponentFactory>)` records the same contribution shape.
+The original callback overload adapts to it by ignoring the provider. Composition passes the
+container's root service resolver to each contribution; both forms run once in their shared
+registration order and keep the same explicit-factory precedence. No temporary provider is built.
+The callback cannot resolve the `IComponentFactory` currently being composed. The original
+single-argument overload has higher overload-resolution priority so existing null-literal calls
+retain their original null validation.
+
 The composition keeps component resolution on the mount path to a single lookup:
 
 - when the options still hold the builder-owned default factory, contributions are registered

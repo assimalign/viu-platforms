@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Cohesion.Viu.Hosting;
@@ -36,6 +37,7 @@ public static class ViuRoutingExtensions
         /// <c>RouterLink</c> are contributed under their type and template names unless the
         /// application already registers them.
         /// </remarks>
+        [OverloadResolutionPriority(1)]
         public IServiceProviderBuilder AddRouting(Action<ViuRoutingOptions>? configure = null)
         {
             ArgumentNullException.ThrowIfNull(services);
@@ -43,6 +45,25 @@ public static class ViuRoutingExtensions
             ViuRoutingOptions options = GetRegisteredOptions(services) ?? AddRoutingServices(services);
             configure?.Invoke(options);
             return services;
+        }
+
+        /// <summary>Configures routing using services from the application's built provider.</summary>
+        /// <param name="configure">The callback receiving the provider and shared routing options.</param>
+        /// <returns>The same service-provider builder.</returns>
+        /// <remarks>
+        /// The callback runs once when the singleton router is first resolved, after registration-time
+        /// configuration and before route contributions, router construction, and ConfigureRouter callbacks.
+        /// Provider-aware callbacks run in registration order and can resolve services registered later.
+        /// The provider is the application's root provider; callbacks must not resolve the router being
+        /// constructed. Existing history selection, component registration, and disposal behavior apply.
+        /// </remarks>
+        public IServiceProviderBuilder AddRouting(Action<IServiceProvider, ViuRoutingOptions> configure)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(configure);
+
+            services.AddRouting();
+            return services.Add(ServiceDescriptor.Singleton(new ViuRoutingConfiguration(configure)));
         }
 
         /// <summary>Contributes route records created from the application's services.</summary>
@@ -117,6 +138,11 @@ public static class ViuRoutingExtensions
 
     private static ViuRouter CreateRouter(IServiceProvider services, ViuRoutingOptions options)
     {
+        foreach (ViuRoutingConfiguration configuration in services.GetServices<ViuRoutingConfiguration>())
+        {
+            configuration.Configure(services, options);
+        }
+
         List<RouteRecord> routes = [.. options.Routes];
         foreach (ViuRouteContribution contribution in services.GetServices<ViuRouteContribution>())
         {

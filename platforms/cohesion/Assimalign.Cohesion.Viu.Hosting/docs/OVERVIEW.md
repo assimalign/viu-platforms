@@ -62,6 +62,24 @@ When `ApplicationOptions.State` or `Directives` is unset, `Build()` resolves an
 default to writing `Viu warning: ...` and `Viu error (source): ...` lines to standard error.
 Assigned values always win.
 
+Use the provider-aware action when component registration needs another service:
+
+```csharp
+builder.Services.AddComponents((serviceProvider, components) =>
+{
+    var catalog = serviceProvider.GetRequiredService<MyComponentCatalog>();
+    catalog.Register(components);
+});
+```
+
+This overload takes `Action<IServiceProvider, ComponentFactory>` and returns no component factory
+from the callback. Both callback forms contribute to the same factory in registration order.
+The provider-aware action runs once when the factory is first resolved, normally during
+application `Build()`, and can use services registered after the `AddComponents` call. It receives
+the root service resolver; do not resolve `IComponentFactory` from inside its own configuration.
+An explicitly registered `IComponentFactory` service replaces composition and suppresses these
+callbacks, just as it suppresses the original component contributions.
+
 Consumers must set `<EnablePreviewFeatures>true</EnablePreviewFeatures>` while the composed
 Cohesion 10.0 preview hosting surface remains preview-annotated.
 

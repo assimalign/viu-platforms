@@ -39,6 +39,18 @@ the router over the resolved history, applies scroll behavior and link classes, 
 `ConfigureRouter` callbacks in order. If configuration throws, the factory disposes the router
 before rethrowing, because the provider never received it.
 
+`AddRouting(Action<IServiceProvider, ViuRoutingOptions>)` adds an ordered internal configuration
+contribution and ensures the usual routing services exist. Its action receives the root service
+resolver and the shared options when the singleton router is first resolved. These actions run
+after all eager `Action<ViuRoutingOptions>` calls, in their own registration order, and before
+route contributions and history resolution. A failing action propagates before a router or
+history is constructed by this factory. Existing singleton caching supplies one successful
+configuration pass; history ownership and router failure cleanup remain unchanged. Callbacks
+must not resolve the router they are configuring. No temporary provider is built.
+
+The original overload has higher overload-resolution priority, preserving the existing
+`AddRouting(null)` default-registration call alongside the new action overload.
+
 The default history is selected by `OperatingSystem.IsBrowser()`: browser web history in a
 browser, memory history elsewhere. That keeps registration host-neutral and lets host-free tests
 exercise the real router.

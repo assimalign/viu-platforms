@@ -31,6 +31,7 @@ internal sealed class ViuComponentComposition
         ViuComponentComposition added = new();
         services.AddSingleton(added);
         services.TryAddSingleton<IComponentFactory>(provider => Compose(
+            provider,
             added.ExplicitComponents,
             added.DefaultComponents,
             provider.GetServices<ViuComponentContribution>()));
@@ -38,16 +39,18 @@ internal sealed class ViuComponentComposition
     }
 
     public static IComponentFactory Compose(
+        IServiceProvider services,
         IComponentFactory? explicitComponents,
         ComponentFactory defaultComponents,
         IEnumerable<ViuComponentContribution> contributions)
     {
+        ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(defaultComponents);
         ArgumentNullException.ThrowIfNull(contributions);
 
         if (explicitComponents is null || ReferenceEquals(explicitComponents, defaultComponents))
         {
-            if (!Apply(defaultComponents, contributions))
+            if (!Apply(services, defaultComponents, contributions))
             {
                 defaultComponents.RegisterGeneratedComponents();
             }
@@ -55,12 +58,13 @@ internal sealed class ViuComponentComposition
         }
 
         ComponentFactory contributedComponents = new();
-        return Apply(contributedComponents, contributions)
+        return Apply(services, contributedComponents, contributions)
             ? new LayeredComponentFactory(explicitComponents, contributedComponents)
             : explicitComponents;
     }
 
     private static bool Apply(
+        IServiceProvider services,
         ComponentFactory components,
         IEnumerable<ViuComponentContribution> contributions)
     {
@@ -70,7 +74,7 @@ internal sealed class ViuComponentComposition
             isApplied = true;
             try
             {
-                contribution.Register(components);
+                contribution.Register(services, components);
             }
             catch (ArgumentException exception) when (exception.GetType() == typeof(ArgumentException))
             {

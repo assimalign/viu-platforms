@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 using Assimalign.Cohesion.DependencyInjection;
 using Assimalign.Viu.Components;
@@ -30,7 +31,26 @@ public static class ViuServiceProviderBuilderExtensions
         /// assigned through <c>ConfigureApplication</c> takes precedence over contributed components.
         /// Registering a different component under an already registered reference fails the build.
         /// </remarks>
+        [OverloadResolutionPriority(1)]
         public IServiceProviderBuilder AddComponents(Action<ComponentFactory> register)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(register);
+
+            return services.AddComponents((_, components) => register(components));
+        }
+
+        /// <summary>Contributes components using services from the application's built provider.</summary>
+        /// <param name="register">The callback receiving the provider and component factory to configure.</param>
+        /// <returns>The same service-provider builder.</returns>
+        /// <remarks>
+        /// The callback runs once on first component-factory resolution, alongside other component
+        /// contributions in registration order. Application build performs that resolution. Services
+        /// registered after this call are available. The provider is the application's root provider;
+        /// the callback must not resolve the component factory being composed. Explicitly assigned
+        /// factories retain their precedence over contributed components.
+        /// </remarks>
+        public IServiceProviderBuilder AddComponents(Action<IServiceProvider, ComponentFactory> register)
         {
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(register);
