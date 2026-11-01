@@ -333,10 +333,10 @@ finally {
 
 $repository = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $packageId = @(Get-ViuPlatformsReleasePackageId)
-Assert-Condition ($packageId.Count -eq 8) "the release inventory is 8 packages, got $($packageId.Count)"
-Assert-Condition ($packageId[0] -eq 'Assimalign.Cohesion.Viu.ApplicationModel' -and $packageId[-1] -eq 'Assimalign.Cohesion.Viu.Templates') 'the inventory is in publication order'
+Assert-Condition ($packageId.Count -eq 7) "the release inventory is 7 packages, got $($packageId.Count)"
+Assert-Condition ($packageId[0] -eq 'Assimalign.Cohesion.Viu.Hosting' -and $packageId[-1] -eq 'Assimalign.Cohesion.Viu.Templates') 'the inventory is in publication order'
 $releasePackage = @(Get-ViuPlatformsReleasePackage -RepositoryDirectory $repository)
-Assert-Condition ($releasePackage.Count -eq 8) 'every inventory project exists and no packable project is missing from it'
+Assert-Condition ($releasePackage.Count -eq 7) 'every inventory project exists and no packable project is missing from it'
 Assert-Condition (@($releasePackage | Where-Object { $_.RequiredEntry -notcontains 'README.md' }).Count -eq 0) 'every package requires its readme at the package root'
 Assert-Condition ((Get-ViuPlatformsVersion -RepositoryDirectory $repository) -match '^[0-9]+\.[0-9]+\.[0-9]+') 'reads the canonical version from Build.Version.props'
 
@@ -357,7 +357,7 @@ try {
     New-FixtureProject `
         -RelativePath 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/test/Hosting.Tests.csproj' `
         -Content '<Project><PropertyGroup><IsPackable>false</IsPackable></PropertyGroup></Project>'
-    Assert-Condition (@(Get-ViuPlatformsReleasePackage -RepositoryDirectory $fixture).Count -eq 8) 'template content and non-packable projects stay outside the inventory'
+    Assert-Condition (@(Get-ViuPlatformsReleasePackage -RepositoryDirectory $fixture).Count -eq 7) 'template content and non-packable projects stay outside the inventory'
 
     New-FixtureProject -RelativePath 'platforms/cohesion/Assimalign.Cohesion.Viu.Stray/src/Assimalign.Cohesion.Viu.Stray.csproj'
     Assert-Failure { Get-ViuPlatformsReleasePackage -RepositoryDirectory $fixture } '*release inventory is incomplete*'
