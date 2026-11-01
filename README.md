@@ -20,9 +20,8 @@ composition remains independent of these packages.
 - `Assimalign.Cohesion.Viu.Templates` — the `viu-cohesion` and `viu-cohesion-web` templates.
 - `Assimalign.Cohesion.Viu.Markdown` — generated Markdown catalogs, content sources, router-aware
   node rendering, page and navigation components, and optional hosting registration.
-- `Assimalign.Cohesion.Viu.ApplicationModel` — typed site validation and descriptors layered over the Web planner.
 
-All eight packages are versioned together. The current platform version is `10.0.0-preview.1`; it
+All seven packages are versioned together. The current platform version is `10.0.0-preview.1`; it
 composes the Cohesion and Viu builds [`global.json`](global.json) pins (see
 [Getting the Assimalign.Cohesion and Assimalign.Viu packages](#getting-the-assimaligncohesion-and-assimalignviu-packages)).
 
@@ -218,7 +217,7 @@ preserved 45-page route/asset baseline:
 pwsh scripts/Verify-MarkdownDocs.ps1
 ```
 
-`Install-Local.ps1` restores, builds, tests, and packs all eight packages into `_out/packages`. Shipping
+`Install-Local.ps1` restores, builds, tests, and packs all seven packages into `_out/packages`. Shipping
 libraries target `net10.0`, use explicit registration, and enable trimming/AOT compatibility
 analysis. The Server package carries Cohesion's App.Web framework reference; Hosting.Browser has
 only its host-neutral Hosting dependency and the Viu Browser runtime dependency.
@@ -234,10 +233,10 @@ and framework packs. To move to another Cohesion build, edit the two `global.jso
 nothing else:
 
 - `10.0.0-preview.0.ci.<run>` — a build of cohesion `main`, published by cohesion's
-  `ci-packages.yml` for every merge. The current pin is `10.0.0-preview.0.ci.21` (cohesion
-  `4c52f8c`).
+  `ci-packages.yml` for every merge.
 - `10.0.0-preview.0.pr.<pr>.<run>` — a build of an open cohesion pull request, for integrating
-  unreleased Cohesion work without packing it locally.
+  unreleased Cohesion work without packing it locally. The current pin is
+  `10.0.0-preview.0.pr.1759.172`, a build of cohesion PR #1759 (the application-model restart).
 - `10.0.0-preview.1` and later — releases.
 
 A CI pin is temporary: cohesion deletes a pull request's builds when it closes and keeps only the
@@ -257,12 +256,12 @@ Viu comes from the same feed the same way. The one pin is the `Assimalign.Viu.Sd
 `Build.References.Packages.targets` reads the `Assimalign.Viu.Sdk` entry for every Viu library
 reference. viu's `ci-packages.yml` publishes `10.0.0-preview.0.ci.<run>` for every merge to viu
 `main` and `10.0.0-preview.0.pr.<pr>.<run>` for an open viu pull request, under the same retention
-rules. The current pin is `10.0.0-preview.0.pr.379.5` (Viu PR #379). A CI build of this repository
+rules. The current pin is the release `10.0.0-preview.2`. A CI build of this repository
 carries both pins into its package dependencies, so a consumer restores the whole set from the feed.
 
 ## CI packages
 
-[`.github/workflows/ci-packages.yml`](.github/workflows/ci-packages.yml) publishes all eight
+[`.github/workflows/ci-packages.yml`](.github/workflows/ci-packages.yml) publishes all seven
 packages to the Assimalign GitHub Packages feed for every push to `main` and every commit to an open
 same-repository pull request, so consumers such as `viu-examples` can pin a build instead of packing
 this repository. The model is cohesion's:
@@ -292,52 +291,73 @@ dotnet new install ./_out/packages/Assimalign.Cohesion.Viu.Templates.10.0.0-prev
 dotnet new viu-cohesion-web --name Acme.Docs --assimalignRoot C:/Source/repos/assimalign
 cd Acme.Docs
 dotnet build
-dotnet run --project Acme.Docs.Web
-dotnet run --project Acme.Docs.AppHost -- --gateway local --mode describe
+dotnet run --project Acme.Docs.Web       # the site on its own, unmanaged
+dotnet run --project Acme.Docs.Gateway   # a gateway that runs the site in its own process
 ```
 
-The template creates Client, Web and AppHost projects. Web is an enabled Web resource with a
-public HTTP endpoint. Declare `<ProjectReference Include="../Client/Client.csproj" ViuClient="true" />` on Web.
+The template creates Client, Web and Gateway projects. Web is an ordinary Cohesion Web application.
+Declare `<ProjectReference Include="../Client/Client.csproj" ViuClient="true" />` on Web.
 It participates in normal restore/build order, automatically sets `ReferenceOutputAssembly=false`
 and `Private=false`, and queries the Browser SDK's `GetViuBrowserClientInfo` target.
 `builder.Services.AddViuClient()` (or `options.UseClientOutput()` inside an explicit configuration
-callback) infers the single client and selects build manifests during
-development, through the `viu-client.json` document the build stages beside the executable and in
-an in-process member's resource content root, and a physical `wwwroot` beside the executable after
-publication. The bare health
-probes and the resource control-plane path (`ViuApplicationOptions.ControlPlanePath`, default
-`/cohesion/v1`, plus its subtree) always pass through Viu's static and server-rendering fallbacks;
-every other route, including an application route such as `/cohesion`, belongs to the browser
-application.
+callback) infers the single client and selects build manifests during development, through the
+`<client>.viu-client.json` document the build copies beside the executable (and beside a gateway
+that references Web; with several Viu sites there, name each with `UseClientOutput("<client>")`),
+and a physical `wwwroot` beside the executable after publication. A gateway runs its sites from a
+build: its publish carries neither document nor `wwwroot`. The bare health probes (`/healthz`, `/readyz`,
+`/livez`) always pass through Viu's static and server-rendering fallbacks; every other route,
+including an application route such as `/cohesion`, belongs to the browser application.
+
+### Managed by a gateway
+
+Web makes itself a managed resource with one registration, from Cohesion's
+`Web.Hosting.ApplicationModel` (an App.Web member, so `Sdk.Web` applications need no reference) and
+the in-process platform's instance half, `Assimalign.Cohesion.ApplicationModel.Hosting.InProcess`:
+
+```csharp
+builder.Services.AddResource("acme-docs-web", resource => resource.UseInProcess());
+```
+
+Started by a gateway, it publishes itself through the platform the gateway names; started on its
+own (no `COHESION_GATEWAY` in its environment) the call registers nothing. Gateway is an executable
+on `Assimalign.Cohesion.Sdk.Gateway` that declares the model and runs Web's entry point on the
+in-process platform:
+
+```csharp
+await using var infrastructure = new InProcessInfrastructure();
+infrastructure.AddProgram("Web", "acme-docs-web", Acme.Docs.Web.Program.MainAsync);
+ApplicationGatewayBuilder builder = ApplicationGateway.CreateBuilder("acme-docs").UseInProcess(infrastructure);
+builder.AddResource("Web", "acme-docs-web");
+await builder.Build().RunAsync();
+```
+
+An out-of-process platform, such as the Kubernetes pair in `cohesion-platforms`, changes both
+programs: Web references the platform's instance package and opts into it in `Program.cs`
+(`UseKubernetes()` instead of, or beside, `UseInProcess()`), and the gateway uses that platform's
+infrastructure and `builder.Use<Platform>(...)` verb in place of `InProcessInfrastructure`,
+`AddProgram` and its reference to Web. What the gateway passes a resource
+(its endpoint, its settings) arrives through ordinary configuration and the Core `AppEnvironment`
+contract.
 
 The server serves a source-generated `cohesion/viu-client/v1` document at `/_cohesion/client.json`
-with `Cache-Control: no-store`. It includes only application/resource/environment/gateway names
-and referenced endpoint URLs. `ClientConfigurationPath=null` disables it. Browser
-`AddClientConfiguration(httpClient)` loads it before Viu starts and registers a synchronous
+with `Cache-Control: no-store`. It includes only the application, resource and platform names the
+platform sets (`COHESION_APPLICATION`, `COHESION_RESOURCE`, `COHESION_GATEWAY`), the environment,
+and the endpoint URLs the application adds with `options.AddClientReference(resource, endpoint,
+url)`, typically from a setting the gateway passes. `ClientConfigurationPath=null` disables it.
+Browser `AddClientConfiguration(httpClient)` loads it before Viu starts and registers a synchronous
 `ViuClientConfigurationProvider`; failed requests warn and retain `ViuClientConfiguration.Empty`.
 
 ```pwsh
 dotnet publish Acme.Docs.Web -c Release -r linux-arm64
-dotnet msbuild Acme.Docs.Web/Acme.Docs.Web.csproj -t:CohesionPublishImage -p:Configuration=Release -p:RuntimeIdentifier=linux-x64 -p:CohesionContainerRepository=docs/site -p:CohesionContainerPush=false
 ```
 
 Publishing Web publishes the client in Release with the browser's own RID and trimming settings,
-then includes its complete `wwwroot` in Web's publish output. Cohesion's image target creates a
-self-contained OCI archive without a Dockerfile. It needs the Cohesion App/App.Web runtime packs
-for the chosen RID. The current Cohesion image resolver accepts only `linux-x64` and
-`linux-musl-x64`; ordinary `linux-arm64` publish works, but the image target needs an upstream
-ARM64 extension before it can target the local Podman machine. Release images require NativeAOT
-and a supported Linux build host/toolchain; Debug permits self-contained JIT images.
-
-`Assimalign.Cohesion.Viu.ApplicationModel` adds `AddViuWeb` validation and typed metadata, while
-using exactly the `AddWeb` plan. Generated `AddAllResources()` still calls `AddWeb` until Cohesion's
-`CohesionGatewayResourceKind` selection supports the overlay. Keep the Web executable's manifest
-application model as `Assimalign.Cohesion.Web.ApplicationModel`. See the
-[ApplicationModel overview](platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/docs/OVERVIEW.md).
+then includes its complete `wwwroot` in Web's publish output.
 
 The pre-release `ViuClientReference` item is removed; builds print the new marked
 `ProjectReference` form. Explicit `UseClientOutput("Client.Assembly")` remains available.
 
-After packing, run `pwsh scripts/tests/Test-Templates.ps1` for isolated template builds,
-Web publication with a trimmed client, and a packed SSR consumer using a referenced Viu catalog.
-The lane keeps its hive, cache and generated projects under `_out` and treats warnings as errors.
+After packing, run `pwsh scripts/tests/Test-Templates.ps1` for isolated template builds, a brief
+run of the site's in-process gateway, Web publication with a trimmed client, and a packed SSR
+consumer using a referenced Viu catalog. The lane keeps its hive, cache and generated projects
+under `_out` and treats warnings as errors.

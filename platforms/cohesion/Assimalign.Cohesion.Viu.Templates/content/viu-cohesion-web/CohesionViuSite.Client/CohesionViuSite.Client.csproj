@@ -1,6 +1,8 @@
 <Project Sdk="Assimalign.Viu.Sdk.Browser">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- The namespace-safe form of the name (my-site gives my_site); the project name may not be a namespace. -->
+    <RootNamespace>CohesionViuSite.Client</RootNamespace>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>

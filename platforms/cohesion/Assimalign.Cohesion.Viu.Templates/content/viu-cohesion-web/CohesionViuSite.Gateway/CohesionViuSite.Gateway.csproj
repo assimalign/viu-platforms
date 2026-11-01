@@ -1,0 +1,15 @@
+<Project Sdk="Assimalign.Cohesion.Sdk.Gateway">
+  <!-- Sdk.Gateway references Assimalign.Cohesion.ApplicationModel.Gateway. The platform the model runs on is the one
+       package added here: the in-process platform, which runs the Web program on a thread of this process, so the
+       gateway references the Web project whose entry point it registers. -->
+  <PropertyGroup>
+    <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+    <RootNamespace>CohesionViuSite.Gateway</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <CohesionPackageReference Include="Assimalign.Cohesion.ApplicationModel.Gateway.InProcess" Version="$(CohesionVersion)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../__PROJECT_NAME__.Web/__PROJECT_NAME__.Web.csproj" />
+  </ItemGroup>
+</Project>

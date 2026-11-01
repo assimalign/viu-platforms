@@ -1,28 +1,66 @@
-# CohesionViuSite
+# __PROJECT_NAME__
 
-The Client runs Viu in the browser. Web is an enabled Cohesion Web resource serving that client,
-its public `/_cohesion/client.json` document, and Cohesion health/control-plane routes. AppHost
-composes Web through the built-in Local gateway. All project SDKs are pinned in `global.json`.
+The Client runs Viu in the browser. Web is an ordinary Cohesion Web application serving that client
+and its public `/_cohesion/client.json` document; one call in its `Program.cs`,
+`builder.Services.AddResource("__APPLICATION_NAME__-web", resource => resource.UseInProcess())`,
+makes it a managed resource when a gateway starts it. Gateway declares the model and runs Web in its
+own process on Cohesion's in-process platform. All project SDKs are pinned in `global.json`.
 
 ## Local packages
 
-This template pins Viu `10.0.0-preview.0.pr.379.5`, Cohesion `10.0.0-preview.0.ci.21`,
-and platform packages `10.0.0-preview.1`. Pack the local platform family before building.
+This template pins Viu `10.0.0-preview.2`, Cohesion `__COHESION_PACKAGE_VERSION__`, and platform
+packages `10.0.0-preview.1`. Pack the local platform family before building.
 When creating the template outside the sibling checkout directory, pass
 `--assimalignRoot C:/Source/repos/assimalign`. The `--cohesionVersion` parameter selects another
 complete SDK/framework/library identity. Keep SDK and library identities aligned.
 
 ```pwsh
 dotnet build
-dotnet run --project CohesionViuSite.Web
-dotnet run --project CohesionViuSite.AppHost -- --gateway local --mode describe
+dotnet run --project __PROJECT_NAME__.Web       # the site on its own, unmanaged
+dotnet run --project __PROJECT_NAME__.Gateway   # the gateway, which runs the site and prints its address
 ```
 
-Web defaults to HTTP port 8080. `COHESION_ENDPOINT_HTTP_PORT` selects another port.
+On its own, Web binds Web.Hosting's development default, `http://127.0.0.1:5000`; configure an
+`Http` section, or set `COHESION_ENDPOINT_HTTP_SCHEME`, `_HOST` and `_PORT` together, to choose
+another. Under the gateway, the platform
+assigns its port and Gateway prints the address. Stop either with Ctrl+C.
 The client configuration provider is populated before components start; failed document requests
 warn and retain an empty configuration. The supplied `HttpClient` belongs to Program.
 
-## Publish and containers
+## The gateway
+
+Gateway is an executable on `Assimalign.Cohesion.Sdk.Gateway`. It references Web, registers Web's
+entry point on the in-process platform, and declares one resource:
+
+```csharp
+await using var infrastructure = new InProcessInfrastructure();
+infrastructure.AddProgram("Web", "__APPLICATION_NAME__-web", CohesionViuSite.Web.Program.MainAsync);
+ApplicationGatewayBuilder builder = ApplicationGateway.CreateBuilder("__APPLICATION_NAME__").UseInProcess(infrastructure);
+builder.AddResource("Web", "__APPLICATION_NAME__-web");
+```
+
+Settings the gateway passes (`builder.AddResource(...).WithSetting("Api:Url", ...)`) arrive in Web as
+configuration. Publish one in the client document from an `AddViuClient` callback. A callback turns
+off client inference, so it calls `UseClientOutput()` itself:
+
+```csharp
+builder.Services.AddViuClient(viu =>
+{
+    viu.UseClientOutput();
+    if (builder.Configuration["Api:Url"] is { } api)
+    {
+        viu.AddClientReference("api", "http", new Uri(api));
+    }
+});
+```
+
+Another platform, such as the Kubernetes pair from `cohesion-platforms`, changes both projects. Web
+references that platform's instance package and opts into it in `Program.cs` (`UseKubernetes()`
+instead of, or beside, `UseInProcess()`). Gateway replaces `InProcessInfrastructure`, `AddProgram`
+and its reference to Web with that platform's infrastructure and its `builder.Use<Platform>(...)`
+verb, because the platform runs Web as its own deployment.
+
+## Publish
 
 A normal `<ProjectReference Include="../Client/Client.csproj" ViuClient="true" />` joins the restore
 graph and establishes build order without a compile reference. The Browser SDK identity query
@@ -32,26 +70,8 @@ publishes the client in Release using its own trimming settings, then bundles it
 `wwwroot`, including framework assets and compressed siblings. Published hosting needs no manifests.
 
 ```pwsh
-dotnet publish CohesionViuSite.Web -c Release -r linux-arm64
-dotnet msbuild CohesionViuSite.Web/CohesionViuSite.Web.csproj -t:CohesionPublishImage -p:Configuration=Release -p:RuntimeIdentifier=linux-x64 -p:CohesionContainerRepository=docs/site -p:CohesionContainerPush=false
+dotnet publish __PROJECT_NAME__.Web -c Release -r linux-arm64
 ```
-
-The image target requires the Cohesion App and App.Web runtime packs for the chosen RID.
-It produces an OCI archive without a Dockerfile or registry push. The current Cohesion image
-resolver accepts only `linux-x64` and `linux-musl-x64`; `linux-arm64` ordinary publish works,
-but its image target requires a Cohesion SDK follow-up. Release images require NativeAOT and a
-supported Linux build host/toolchain. Debug permits a self-contained JIT image.
-Kubernetes is opt-in: set `CohesionGateways` to `Local;Kubernetes` and
-`CohesionPlatformsVersion` to gateway packages built against the same Cohesion identity.
-`--gateway kubernetes --mode render` also needs image metadata and gateway configuration; it does not deploy.
-
-## Application model
-
-Web remains `Kind=Web` and declares `Assimalign.Cohesion.Web.ApplicationModel`. Its manifest carries
-`web.viu.client`, `web.viu.spa-fallback`, and `web.viu.base-path`. AppHost composes it with
-`AddViuWeb(Manifests.<Name>)`, which validates those facts and produces the same Web plan as the
-generated `Add<Name>()` verb. Automatic Viu verb selection requires a Cohesion SDK
-`CohesionGatewayResourceKind` mapping follow-up. Do not change Web's resource kind or application model.
 
 Components use `builder.Services.AddComponents()`, `builder.UseRootComponent<App>()` and
 `routing.Routes.Add<Counter>("/", "Counter")`. No catalog aliases or component-name strings are

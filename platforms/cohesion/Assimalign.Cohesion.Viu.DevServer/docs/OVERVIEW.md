@@ -43,8 +43,8 @@ under `tools/` is AnyCPU IL, so the payload runs under the consumer's `dotnet` o
 
 Version `10.0.0-preview.1` builds and packs against the Cohesion build `global.json` pins. The packaged
 managed runtime closure remains self-sufficient except for the installed Microsoft.NETCore.App.
-The Server middleware also exposes the public client document and reserves resource control-plane
-routes. For deployable sites use `viu-cohesion-web`; this tool remains the development host.
+The Server middleware also exposes the public client document and passes the bare health-probe
+routes through. For deployable sites use `viu-cohesion-web`; this tool remains the development host.
 
 The development host supplies explicit content and manifest paths to `AddViuClient`; it does not
 infer a client project. Deployable Web sites use a normal `ProjectReference ViuClient="true"` and
