@@ -42,7 +42,7 @@ public static class ViuServerServiceProviderBuilderExtensions
         /// <summary>Registers browser assets and fallback in the Web host.</summary>
         /// <param name="configure">
         /// Optional explicit asset configuration. When omitted, selects the sole marked client
-        /// from viu-client.json or the published wwwroot. Call UseClientOutput() in a callback
+        /// from its client document or the published wwwroot. Call UseClientOutput() in a callback
         /// when customizing an inferred client.
         /// </param>
         /// <returns>The same service-provider builder.</returns>
@@ -64,8 +64,9 @@ public static class ViuServerServiceProviderBuilderExtensions
             {
                 ClientConfiguration = configuration.ClientConfiguration is { Resource: not null } captured
                     ? captured
-                    : new ViuClientConfiguration(environment:
-                        provider.GetService<IHostEnvironment>()?.Name ?? AppEnvironment.GetEnvironmentName()),
+                    : new ViuClientConfiguration(
+                        environment: provider.GetService<IHostEnvironment>()?.Name ?? AppEnvironment.GetEnvironmentName(),
+                        references: configuration.ClientConfiguration?.References),
             }));
             return services;
         }

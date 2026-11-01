@@ -189,33 +189,51 @@ request roots, service providers, and scopes. Custom pipeline implementations su
 the predicate-only overload requires a built Cohesion `WebApplication`.
 
 All renderer overloads produce HTML with `Cache-Control: no-store`, propagate request cancellation,
-and pass through non-GET requests, reserved resource paths, and requests rejected by the predicate.
+and pass through non-GET requests, health-probe paths, and requests rejected by the predicate.
 The document shell preserves `prefix -> progressive render -> teleport suffix` order. Destinations
 belong in the suffix; already emitted head/body content needs buffering or a prepass to change.
 Cohesion currently buffers responses, so a render/adaptor failure before transport commitment can
 clear the body, set 500, and propagate to the host exception boundary. A component error handled by
 the configured Viu error handler follows Viu's normal handled-error semantics.
 
-## Web resource and client bundling
+## Client bundling and the client document
 
-Version `10.0.0-preview.1` supports Cohesion 10.0 preview Web resources. On the executable,
-declare `<ProjectReference Include="../Client/Client.csproj" ViuClient="true" />` and call
-`builder.Services.AddViuClient()` before building the host. A normal Web build restores the client
-through the project graph; no separate client restore is needed. The package automatically applies
-`ReferenceOutputAssembly=false` and `Private=false` while preserving build order.
+On the Web executable, declare `<ProjectReference Include="../Client/Client.csproj" ViuClient="true" />`
+and call `builder.Services.AddViuClient()` before building the host. A normal Web build restores the
+client through the project graph; no separate client restore is needed. The package automatically
+applies `ReferenceOutputAssembly=false` and `Private=false` while preserving build order.
 Package `buildTransitive` assets establish build order, query `GetViuBrowserClientInfo` for the client identity, output and exact manifest paths, and write them to
-a `viu-client.json` content file that travels beside the executable and into an in-process
-member's resource content root, publish the client in Release with its own settings, and bundle
-its complete `wwwroot` into Web's publish directory. Published hosting selects the physical root without manifests, including
-fingerprinted assets, MIME types, and negotiated `.br`/`.gz` siblings.
+a `<client>.viu-client.json` content file that travels beside the executable (and beside a gateway
+that references the Web project to run it in process), publish the client in Release with its own
+settings, and bundle its complete `wwwroot` into Web's publish directory. Published hosting selects
+the physical root without manifests, including fingerprinted assets, MIME types, and negotiated
+`.br`/`.gz` siblings.
 
-Enabled Web manifests gain `web.viu.client`, `web.viu.spa-fallback=true`, and `web.viu.base-path=/`.
-Viu middleware passes `/healthz`, `/readyz`, `/livez`, and the resource control-plane path
-(`ViuApplicationOptions.ControlPlanePath`, default `/cohesion/v1`, plus its subtree) through before fallback or
-server rendering. The default `/_cohesion/client.json` route serves only public runtime identity
-and reference URLs as `cohesion/viu-client/v1`, with `no-store`. Set `ClientConfigurationPath` to a
-local absolute route to move it, or null to disable it. Plain hosts use their host environment and
-empty references. See [design](DESIGN.md) for the build boundary and gateway limitation.
+Viu middleware passes the bare health probes `/healthz`, `/readyz` and `/livez` through before
+fallback or server rendering; every other route belongs to the browser application. The default
+`/_cohesion/client.json` route serves `cohesion/viu-client/v1` with `no-store`: the application,
+resource and platform names the instance's platform sets (`COHESION_APPLICATION`,
+`COHESION_RESOURCE`, `COHESION_GATEWAY`), the environment, and only the endpoints the application
+adds. A gateway passes another resource's address as a setting, which arrives as configuration:
+
+```csharp
+builder.Services.AddViuClient(viu =>
+{
+    viu.UseClientOutput();
+    if (builder.Configuration["Api:Url"] is { } api)
+    {
+        viu.AddClientReference("api", "http", new Uri(api));
+    }
+});
+```
+
+Set `ClientConfigurationPath` to a local absolute route to move the document, or null to disable it.
+An unmanaged host reports its host environment and no identity.
+
+A Viu site becomes a managed resource like any Cohesion Web application, with
+`builder.Services.AddResource(name, resource => resource.UseInProcess())` from
+`Web.Hosting.ApplicationModel`; this package adds nothing to that registration. See
+[design](DESIGN.md) for the build boundary and what the application-model restart removed.
 
 `UseClientOutput()` infers the sole client from that document; the named overload still validates
 an explicit identity. In an `AddViuClient` callback, call `options.UseClientOutput()` before

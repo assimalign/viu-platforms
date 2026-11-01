@@ -24,9 +24,8 @@
     <PackageReference Update="Assimalign.Cohesion.Core" Version="[$(CohesionPackageVersion)]" />
     <PackageReference Update="Assimalign.Cohesion.Content" Version="[$(CohesionPackageVersion)]" />
     <PackageReference Update="Assimalign.Cohesion.Content.Text" Version="[$(CohesionPackageVersion)]" />
-    <PackageReference Update="Assimalign.Cohesion.ApplicationModel" Version="[$(CohesionPackageVersion)]" />
-    <PackageReference Update="Assimalign.Cohesion.Web.ApplicationModel" Version="[$(CohesionPackageVersion)]" />
-    <PackageReference Update="Assimalign.Cohesion.Hosting.Resources" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.ApplicationModel.Gateway.InProcess" Version="[$(CohesionPackageVersion)]" />
+    <PackageReference Update="Assimalign.Cohesion.ApplicationModel.Hosting.InProcess" Version="[$(CohesionPackageVersion)]" />
     <PackageReference Update="Assimalign.Cohesion.Web.Testing" Version="[$(CohesionPackageVersion)]" />
     <PackageReference Update="Assimalign.Cohesion.Configuration" Version="[$(CohesionPackageVersion)]" />
     <PackageReference Update="Assimalign.Cohesion.Content.Markdown" Version="[$(CohesionPackageVersion)]" />

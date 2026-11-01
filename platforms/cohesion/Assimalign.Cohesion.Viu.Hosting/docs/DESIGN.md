@@ -112,7 +112,7 @@ activation is added by this integration.
 ## Client configuration boundary
 
 Hosting owns the immutable wire contract and source-generated JSON metadata, so browser and
-server agree without either depending on the other. No resource runtime, mounts, settings,
+server agree without either depending on the other. No runtime-contract variable, mount, setting,
 credentials or trust keys are serialized by this type. Mutable caller dictionaries are copied
 into read-only nested maps. Browser failure uses the shared `Empty` instance.
 

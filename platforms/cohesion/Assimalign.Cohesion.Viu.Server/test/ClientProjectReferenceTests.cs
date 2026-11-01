@@ -21,7 +21,7 @@ public sealed class ClientProjectReferenceTests
 
         File.Exists(Path.Combine(fixture.Root, "Client", "obj", "project.assets.json")).ShouldBeTrue();
         string webOutput = Path.Combine(fixture.Root, "Web", "bin", "Release", "net10.0");
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(webOutput, "viu-client.json")));
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(webOutput, "Custom.Client.viu-client.json")));
         document.RootElement.GetProperty("client").GetString().ShouldBe("Custom.Client");
         document.RootElement.GetProperty("outputPath").GetString()!.ShouldContain("custom output");
         document.RootElement.GetProperty("runtimeManifestPath").GetString()!.ShouldEndWith("custom.runtime.json");
@@ -43,7 +43,7 @@ public sealed class ClientProjectReferenceTests
         File.ReadAllText(Path.Combine(published, "wwwroot", "index.html")).ShouldBe("client document");
         File.ReadAllText(Path.Combine(published, "wwwroot", "_framework", "runtime.js")).ShouldBe("browser runtime");
         File.ReadAllText(Path.Combine(published, "wwwroot", "_content", "Library", "styles.css")).ShouldBe("library styles");
-        File.Exists(Path.Combine(published, "viu-client.json")).ShouldBeFalse();
+        Directory.EnumerateFiles(published, "*viu-client.json").ShouldBeEmpty();
         // The synthetic Browser query asserts that Web-only RID/AOT settings were removed.
         await fixture.RunAsync("msbuild", "Web/Web.csproj", "-t:ViuResolveClientOutput",
             "-p:RuntimeIdentifier=linux-arm64", "-p:PublishAot=true", "-p:PublishTrimmed=true");

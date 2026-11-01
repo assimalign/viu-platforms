@@ -13,20 +13,18 @@ internal sealed record ViuApplicationConfiguration(
     BrowserRefreshConfiguration BrowserRefresh,
     bool EnableSpaFallback = true,
     string? ClientConfigurationPath = null,
-    ViuClientConfiguration? ClientConfiguration = null,
-    string ControlPlanePath = ResourceRoutes.DefaultControlPlanePath)
+    ViuClientConfiguration? ClientConfiguration = null)
 {
     public static ViuApplicationConfiguration Create(ViuApplicationOptions options, string? environment = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.ContentRootPath);
-        string controlPlanePath = ResourceRoutes.NormalizeControlPlanePath(options.ControlPlanePath);
         if (options.ClientConfigurationPath is string route
             && (!route.StartsWith('/') || route.StartsWith("//", StringComparison.Ordinal)
                 || route.Contains('?') || route.Contains('#') || !StaticWebAssetCatalog.IsSafeRequestPath(route)
-                || ResourceRoutes.IsReserved(route, controlPlanePath)))
+                || HealthProbeRoutes.IsReserved(route)))
         {
-            throw new ArgumentException("ClientConfigurationPath must be a local absolute route outside the resource control plane.", nameof(options));
+            throw new ArgumentException("ClientConfigurationPath must be a local absolute route other than a health probe.", nameof(options));
         }
 
         string contentRootPath = Path.GetFullPath(options.ContentRootPath);
@@ -41,8 +39,7 @@ internal sealed record ViuApplicationConfiguration(
             BrowserRefreshConfiguration.FromEnvironment(),
             options.EnableSpaFallback,
             options.ClientConfigurationPath,
-            ClientConfigurationDocument.Create(environment ?? AppEnvironment.GetEnvironmentName()),
-            controlPlanePath);
+            ClientConfigurationDocument.Create(environment ?? AppEnvironment.GetEnvironmentName(), options.ClientReferences));
     }
 
     private static string? NormalizeOptionalPath(string? path)

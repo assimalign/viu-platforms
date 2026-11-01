@@ -18,7 +18,7 @@ public sealed class ViuClientConfiguration
     /// <param name="application">The containing application identity.</param>
     /// <param name="resource">The Web resource identity.</param>
     /// <param name="environment">The host environment.</param>
-    /// <param name="gateway">The gateway identity.</param>
+    /// <param name="gateway">The platform a gateway runs the resource on.</param>
     /// <param name="references">Endpoint URLs grouped by resource and endpoint names.</param>
     /// <param name="schema">The document schema identifier.</param>
     [JsonConstructor]
@@ -50,16 +50,16 @@ public sealed class ViuClientConfiguration
     /// <summary>Gets the document schema identifier.</summary>
     public string Schema { get; }
 
-    /// <summary>Gets the containing application identity, when orchestrated.</summary>
+    /// <summary>Gets the containing application identity, when managed.</summary>
     public string? Application { get; }
 
-    /// <summary>Gets the Web resource identity, when orchestrated.</summary>
+    /// <summary>Gets the Web resource identity, when managed.</summary>
     public string? Resource { get; }
 
     /// <summary>Gets the host environment.</summary>
     public string? Environment { get; }
 
-    /// <summary>Gets the gateway identity, when orchestrated.</summary>
+    /// <summary>Gets the platform a gateway runs the resource on (<c>COHESION_GATEWAY</c>), when managed.</summary>
     public string? Gateway { get; }
 
     /// <summary>Gets immutable endpoint URLs grouped by resource and endpoint names.</summary>

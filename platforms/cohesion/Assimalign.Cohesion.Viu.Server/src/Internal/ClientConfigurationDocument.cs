@@ -1,43 +1,36 @@
-using System;
 using System.Collections.Generic;
 
-using Assimalign.Cohesion.Hosting.Resources;
 using Assimalign.Cohesion.Viu.Hosting;
 
 namespace Assimalign.Cohesion.Viu.Server;
 
 internal static class ClientConfigurationDocument
 {
-    internal static ViuClientConfiguration Create(string environment)
+    /// <summary>
+    /// Creates the public client document. The identity comes from the runtime contract the
+    /// instance's platform sets (<see cref="AppEnvironment.Variables.Application"/>,
+    /// <see cref="AppEnvironment.Variables.Resource"/> and <see cref="AppEnvironment.Variables.Gateway"/>),
+    /// read through <see cref="AppEnvironment"/>, so a program a gateway runs in its own process
+    /// reads its own environment scope. Only those names and the references the application added
+    /// are projected; no other variable or setting reaches the document.
+    /// </summary>
+    internal static ViuClientConfiguration Create(
+        string environment,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? references)
     {
-        ResourceContext resource = ResourceRuntime.Current;
-        if (string.IsNullOrEmpty(resource.ResourceName))
+        string? resource = Normalize(AppEnvironment.GetValue(AppEnvironment.Variables.Resource));
+        if (resource is null)
         {
-            return new ViuClientConfiguration(environment: environment);
+            return new ViuClientConfiguration(environment: environment, references: references);
         }
 
-        Dictionary<string, Dictionary<string, string>> grouped = new(StringComparer.Ordinal);
-        foreach ((string key, Uri url) in resource.References)
-        {
-            int separator = key.IndexOf(':');
-            if (separator <= 0 || separator == key.Length - 1)
-            {
-                continue;
-            }
-            string name = key[..separator];
-            if (!grouped.TryGetValue(name, out Dictionary<string, string>? endpoints))
-            {
-                endpoints = new(StringComparer.Ordinal);
-                grouped.Add(name, endpoints);
-            }
-            endpoints.Add(key[(separator + 1)..], url.ToEndpointString());
-        }
-        Dictionary<string, IReadOnlyDictionary<string, string>> references = new(StringComparer.Ordinal);
-        foreach ((string name, Dictionary<string, string> endpoints) in grouped)
-        {
-            references.Add(name, endpoints);
-        }
-        return new ViuClientConfiguration(resource.ApplicationName, resource.ResourceName,
-            resource.EnvironmentName, resource.GatewayName, references);
+        return new ViuClientConfiguration(
+            Normalize(AppEnvironment.GetValue(AppEnvironment.Variables.Application)),
+            resource,
+            environment,
+            Normalize(AppEnvironment.GetValue(AppEnvironment.Variables.Gateway)),
+            references);
     }
+
+    private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 }

@@ -21,8 +21,7 @@ public sealed class ViuServerRendererMiddlewareTests
     [InlineData("/readyz")]
     [InlineData("/healthz")]
     [InlineData("/livez")]
-    [InlineData("/cohesion/v1/health")]
-    public async Task ResourceRoutesNeverInvokeServerRendering(string path)
+    public async Task HealthProbesNeverInvokeServerRendering(string path)
     {
         RecordingScopeFactory factory = new();
         ViuServerRendererMiddleware middleware = new(new ServerRenderAdaptor<IHttpContext>(factory),

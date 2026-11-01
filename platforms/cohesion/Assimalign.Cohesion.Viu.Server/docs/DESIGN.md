@@ -133,7 +133,7 @@ JSON uses generated metadata; the refresh delta validator uses `JsonDocument`; a
 dynamic code generation, runtime XML parsing, or assembly discovery is used. Public registrations
 and the supplied root factory keep application activation explicit.
 
-## Resource-aware publishing and client document
+## Client publishing and client document
 
 `buildTransitive/Assimalign.Cohesion.Viu.Server.props|targets` select normal
 `ProjectReference` items marked `ViuClient="true"` at evaluation time. This preserves the restore
@@ -147,32 +147,42 @@ reference removes Web RID, self-contained, AOT, trimming and ready-to-run proper
 one Browser identity and complete metadata, and uses the returned output/manifest paths directly.
 Missing or ordinary non-Browser projects and multiple marked clients fail clearly. The retired
 `ViuClientReference` and `ViuClientProject` inputs fail with the replacement XML in the error.
-The target writes the identity, output and manifest paths into `viu-client.json` in the Web project's intermediate directory and
+The target writes the identity, output and manifest paths into `<client>.viu-client.json` in the Web project's intermediate directory and
 declares that file as copy-to-output content (`CopyToPublishDirectory=Never`), so it sits beside
-the executable out of process and, because Cohesion's gateway SDK stages a member's declared
-copy-to-output content into the member's resource content root, inside that content root when a
-gateway hosts the Web resource in its own process. A runtime configuration option was the earlier
-carrier and was retired: `AppContext` data is process-wide, so an in-process member could never
-see its own value. `ViuPublishClient` restores and publishes the browser in Release, then
-registers all published `wwwroot` files as `ResolvedFileToPublish`, so SDK container payloads and
-image fingerprints include them. It never packs or changes a sibling project.
+the Web executable and, because content copies through project references, beside a gateway
+executable that references the Web project to run it in its own process. A runtime configuration
+option was the earlier carrier and was retired: `AppContext` data is process-wide, so a program a
+gateway runs in its own process could never see its own value. `ViuPublishClient` restores and
+publishes the browser in Release, then registers all published `wwwroot` files as
+`ResolvedFileToPublish`, so SDK container payloads include them. It never packs or changes a
+sibling project. Such a gateway references the Web project, so the Web project's client reference
+carries `PrivateAssets="all"` (the template does) to keep the browser client out of the gateway's
+references.
 
-`UseClientOutput` first checks `AppContext.BaseDirectory/wwwroot/index.html`, then reads
-`viu-client.json` from the ambient `ResourceContext.ContentRootPath` and, when that differs, from
-`AppContext.BaseDirectory`; a document naming a different explicitly requested client is ignored. The parameterless overload
-accepts the document's sole client. Incomplete documents require a rebuild instead of guessed paths. A published root
-uses no asset manifest; a build root uses both runtime and endpoints manifests. Physical files
-retain their logical names for MIME lookup while compression selects a sibling and adds `Vary`.
-Probe paths and the configured control-plane path (`/cohesion/v1` by default — never the whole
-`/cohesion` prefix, which an application such as the Cohesion documentation module legitimately
-routes) continue before file lookup, predicate execution, or SPA fallback.
+`UseClientOutput` first checks `AppContext.BaseDirectory/wwwroot/index.html`, then reads the client
+document from the content root the platform names (`AppEnvironment.Variables.ContentRoot`, read
+through `AppEnvironment` so a program a gateway runs in its own process reads its own scope; the
+runtime contract reserves it and no current gateway sets it) and from `AppContext.BaseDirectory`.
+The document is named for its client, so a gateway that references two Viu Web projects receives
+both documents side by side: `UseClientOutput("<client>")` reads its own, and the parameterless
+overload accepts a sole document and fails, naming the candidates, when there are several. Incomplete documents require
+a rebuild instead of guessed paths. A published root uses no asset manifest; a build root uses both
+runtime and endpoints manifests. Physical files retain their logical names for MIME lookup while
+compression selects a sibling and adds `Vary`. The bare health probes `/healthz`, `/readyz` and
+`/livez`, Web.Health's default paths, continue before file lookup, predicate execution, or SPA
+fallback, so a probe placed after the Viu middleware is still reached. Every other path, including
+anything under `/cohesion`, belongs to the browser application.
 
-Resource identity is captured during composition from `ResourceRuntime.Current`. Explicit field
-projection prevents secrets, settings, mounts, bootstrap credentials and trust material from
-entering JSON. For an unbound host, the concrete Web builder or built application supplies its
-environment; other pipeline-only composition falls back to `AppEnvironment`. These local concrete-type checks avoid
-adding state to `IWebApplicationBuilder`. JSON metadata lives in Hosting and responses are never
-cached. Route validation rejects control-plane routes and non-local request paths.
+The client document's identity is captured during composition from the runtime contract the
+instance's platform sets: `AppEnvironment.Variables.Application`, `.Resource` and `.Gateway` (the
+platform name, such as `inprocess`). Its references are only the endpoints the application adds
+with `ViuApplicationOptions.AddClientReference`, typically from a setting the gateway passes as
+configuration. Explicit field projection prevents secrets, settings, mounts, bootstrap credentials
+and trust material from entering JSON. For an unmanaged host, the concrete Web builder or built
+application supplies its environment; other pipeline-only composition falls back to
+`AppEnvironment`. These local concrete-type checks avoid adding state to `IWebApplicationBuilder`.
+JSON metadata lives in Hosting and responses are never cached. Route validation rejects probe
+routes and non-local request paths.
 
 The package dependency direction is:
 
@@ -180,12 +190,39 @@ The package dependency direction is:
 flowchart LR
     Server["Viu.Server"] --> Web["Web.Hosting / App.Web"]
     Server --> Hosting["Viu.Hosting: client contract"]
-    Server --> Resources["Hosting.Resources: public identity and references"]
+    Server --> Core["Core: AppEnvironment runtime contract"]
 ```
 
-The site remains `Kind=Web` with `Assimalign.Cohesion.Web.ApplicationModel`. Apphost-side Viu
-validation belongs in the separate ApplicationModel package. SDK-generated `AddAllResources()`
-continues to choose `AddWeb` until Cohesion supports the Viu overlay mapping.
+A Viu site becomes a managed resource the way every Cohesion Web application does: its program
+calls `builder.Services.AddResource(name, resource => resource.UseInProcess())` from
+`Web.Hosting.ApplicationModel`. Viu.Server adds nothing to that registration and references no
+ApplicationModel package; the in-process gateway test (`InProcessGatewayTests`) runs a Viu site
+under `InProcessInfrastructure` and reads its client document.
+
+### Removed with Cohesion's application-model restart (2026-11)
+
+Cohesion PR #1759 replaced the old application model. These behaviors existed only for it and were
+removed, with their tests:
+
+- **`ResourceContext`/`ResourceRuntime` (`Hosting.Resources`).** Identity now comes from
+  `AppEnvironment`.
+- **The per-resource content root.** The old in-process gateway staged each resource's client
+  document in a content root of its own. `COHESION_CONTENT_ROOT` replaces it only on paper: the
+  runtime contract reserves it and no gateway sets it, so the document is read from beside the
+  executable, which under an in-process gateway is the gateway's directory. Per-client document
+  names keep several sites from overwriting each other there; a gateway running more than one Viu
+  site names each client with `UseClientOutput("<client>")`. An in-process gateway runs a Viu site
+  from a build, not from a publish: publishing the gateway copies neither the build-only client
+  document nor the `wwwroot` that only the Web project's own publish bundles.
+- **Gateway-wired references.** The client document no longer lists every gateway-declared
+  dependency endpoint; a gateway passes an address as a setting, and the application publishes
+  it with `AddClientReference`.
+- **`ViuApplicationOptions.ControlPlanePath`** and the `/cohesion/v1` reservation. A Web
+  application no longer serves a control plane on its own listener; the platform carries the
+  gateway's calls. `/cohesion/v1` is now an ordinary application route.
+- **`web.viu.*` manifest properties** (`CohesionResourceProperty` items under
+  `CohesionApplicationModel=enabled`). There is no build-generated resource manifest, and the
+  `Viu.ApplicationModel` package that validated them was deleted.
 
 ## Catalog publication in a Cohesion-only executable
 

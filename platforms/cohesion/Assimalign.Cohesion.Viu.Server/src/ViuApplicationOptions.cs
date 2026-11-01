@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-using Assimalign.Cohesion.Hosting.Resources;
-
 namespace Assimalign.Cohesion.Viu.Server;
 
 /// <summary>
@@ -16,21 +14,73 @@ namespace Assimalign.Cohesion.Viu.Server;
 /// </remarks>
 public sealed class ViuApplicationOptions
 {
+    private readonly Dictionary<string, Dictionary<string, string>> _clientReferences = new(StringComparer.Ordinal);
+
     /// <summary>Gets or sets the public client document route. Set to null to disable it.</summary>
     public string? ClientConfigurationPath { get; set; } = "/_cohesion/client.json";
+
+    /// <summary>
+    /// Publishes an endpoint the browser client calls in the client document, under
+    /// <c>references[resource][endpoint]</c>.
+    /// </summary>
+    /// <param name="resource">The name the client looks the endpoint up by, such as <c>api</c>.</param>
+    /// <param name="endpoint">The endpoint's name, such as <c>http</c>.</param>
+    /// <param name="url">The endpoint's absolute URL.</param>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="resource"/> or <paramref name="endpoint"/> is empty, or <paramref name="url"/>
+    /// is not an endpoint URL (absolute, with a host and an explicit port, and no user information,
+    /// query or fragment).
+    /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="url"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// The document publishes only what the application adds here. A gateway passes the address of a
+    /// resource this one depends on as a setting, which the application reads from its configuration,
+    /// for example
+    /// <c>viu.AddClientReference("api", "http", new Uri(builder.Configuration["Api:Url"]!))</c>.
+    /// A later call for the same resource and endpoint replaces the earlier URL.
+    /// </remarks>
+    public void AddClientReference(string resource, string endpoint, Uri url)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resource);
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpoint);
+        Uri.ThrowIfNotEndpoint(url);
+        if (!_clientReferences.TryGetValue(resource, out Dictionary<string, string>? endpoints))
+        {
+            endpoints = new Dictionary<string, string>(StringComparer.Ordinal);
+            _clientReferences.Add(resource, endpoints);
+        }
+        endpoints[endpoint] = url.ToEndpointString();
+    }
+
+    /// <summary>Gets a snapshot of the references the application added, grouped by resource.</summary>
+    internal IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ClientReferences
+    {
+        get
+        {
+            Dictionary<string, IReadOnlyDictionary<string, string>> snapshot = new(StringComparer.Ordinal);
+            foreach ((string resource, Dictionary<string, string> endpoints) in _clientReferences)
+            {
+                snapshot.Add(resource, new Dictionary<string, string>(endpoints, StringComparer.Ordinal));
+            }
+            return snapshot;
+        }
+    }
 
     /// <summary>Selects the published physical root, or the client build output and its asset manifests.</summary>
     /// <param name="clientAssemblyName">The assembly identity of the marked ViuClient ProjectReference.</param>
     /// <exception cref="InvalidOperationException">
-    /// No published root exists and no <c>viu-client.json</c> document for the client exists in the
-    /// ambient resource content root or beside the executable.
+    /// No published root exists and no <c>&lt;client&gt;.viu-client.json</c> document for the client
+    /// exists in the content root the platform names or beside the executable.
     /// </exception>
     /// <remarks>
-    /// The Server build targets write <c>viu-client.json</c>, naming the client and its build output
-    /// directory, as copy-to-output content of the Web executable. Out of process it sits beside the
-    /// executable; hosted in a gateway process it is staged into the member's resource content root,
-    /// which the ambient <see cref="ResourceContext"/> names. Neither location depends on the
-    /// process-wide runtime configuration.
+    /// The Server build targets write <c>&lt;client&gt;.viu-client.json</c>, naming the client and its
+    /// build output directory, as copy-to-output content of the Web executable. It is read from the
+    /// content root the instance's platform names (<see cref="AppEnvironment.Variables.ContentRoot"/>,
+    /// which the runtime contract reserves and no current gateway sets), when it names one, and from
+    /// beside the executable. A gateway that runs the Web program in its own process references the
+    /// Web project, so the document is copied beside the gateway executable; each client's document
+    /// has its own name there, so name the client when one gateway runs several Viu Web projects.
+    /// Neither location depends on the process-wide runtime configuration.
     /// </remarks>
     public void UseClientOutput(string clientAssemblyName)
     {
@@ -38,7 +88,12 @@ public sealed class ViuApplicationOptions
         UseClientOutputCore(clientAssemblyName);
     }
 
-    /// <summary>Selects the sole marked client from viu-client.json, or the published physical root.</summary>
+    /// <summary>Selects the sole marked client's document, or the published physical root.</summary>
+    /// <exception cref="InvalidOperationException">
+    /// No published root and no client document exists, or the directory searched holds documents
+    /// for more than one client (a gateway that runs several Viu Web projects); call
+    /// <see cref="UseClientOutput(string)"/> with the client's name instead.
+    /// </exception>
     public void UseClientOutput() => UseClientOutputCore(null);
 
     private void UseClientOutputCore(string? clientAssemblyName)
@@ -65,14 +120,20 @@ public sealed class ViuApplicationOptions
         }
 
         throw new InvalidOperationException(
-            $"No '{ViuClientDocument.FileName}' document for client '{clientAssemblyName ?? "(inferred)"}' exists in the resource content root or beside the executable. Declare a ProjectReference with ViuClient=\"true\" on the Web executable and build it, or publish its wwwroot.");
+            $"No '{(clientAssemblyName is null ? "*" + ViuClientDocument.FileSuffix : ViuClientDocument.FileName(clientAssemblyName))}' document for client '{clientAssemblyName ?? "(inferred)"}' exists in the content root or beside the executable. Declare a ProjectReference with ViuClient=\"true\" on the Web executable and build it, or publish its wwwroot.");
     }
 
     private static IEnumerable<string> ClientDocumentDirectories()
     {
-        string contentRoot = ResourceRuntime.Current.ContentRootPath;
-        yield return contentRoot;
         string baseDirectory = AppContext.BaseDirectory;
+        string? contentRoot = AppEnvironment.GetValue(AppEnvironment.Variables.ContentRoot);
+        if (string.IsNullOrWhiteSpace(contentRoot))
+        {
+            yield return baseDirectory;
+            yield break;
+        }
+
+        yield return contentRoot;
         if (!string.Equals(
                 Path.TrimEndingDirectorySeparator(Path.GetFullPath(contentRoot)),
                 Path.TrimEndingDirectorySeparator(Path.GetFullPath(baseDirectory)),
@@ -107,18 +168,6 @@ public sealed class ViuApplicationOptions
     /// renderer or another downstream route handler to own application documents.
     /// </remarks>
     public bool EnableSpaFallback { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the resource control-plane path the Viu middleware never answers, so the
-    /// orchestrated Web host's terminal routes are reached even when the fallback is enabled.
-    /// </summary>
-    /// <remarks>
-    /// Defaults to <c>/cohesion/v1</c>, the path <c>Assimalign.Cohesion.Sdk.Web</c> declares. Set it
-    /// when the resource declares a different <c>CohesionControlPlanePath</c>. Only this path and its
-    /// subtree plus the bare <c>/healthz</c>, <c>/readyz</c>, and <c>/livez</c> probes are reserved;
-    /// an application route such as <c>/cohesion</c> or <c>/cohesion/database</c> is served normally.
-    /// </remarks>
-    public string ControlPlanePath { get; set; } = ResourceRoutes.DefaultControlPlanePath;
 
     /// <summary>
     /// Gets or sets a value indicating whether cross-origin isolation response headers are added.
