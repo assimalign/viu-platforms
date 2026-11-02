@@ -10,7 +10,7 @@
   "tags": { "language": "C#", "type": "solution" },
   "symbols": {
     "cohesionVersion": {
-      "type": "parameter", "dataType": "string", "defaultValue": "10.0.0-preview.0.pr.1759.172",
+      "type": "parameter", "dataType": "string", "defaultValue": "10.0.0-preview.0.ci.185",
       "replaces": "__COHESION_PACKAGE_VERSION__", "description": "The complete Cohesion SDK/framework/library identity."
     },
     "assimalignRoot": {

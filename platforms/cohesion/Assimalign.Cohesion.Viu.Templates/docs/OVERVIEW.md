@@ -21,7 +21,8 @@ restore the SDK packages.
 
 `viu-cohesion-web` produces Client, Web, Gateway and a solution. Pass `--assimalignRoot` when the
 output is outside the sibling-checkout directory. Cohesion SDKs default to
-`10.0.0-preview.0.pr.1759.172` (`--cohesionVersion` selects another identity).
+`10.0.0-preview.0.ci.185`, the cohesion `main` CI build the repository's `global.json` pins
+(`--cohesionVersion` selects another identity).
 Web declares its client with a normal `ProjectReference` marked `ViuClient="true"` and makes itself
 a managed resource with `builder.Services.AddResource(name, resource => resource.UseInProcess())`;
 run on its own, it is a plain Web application. Gateway, on `Assimalign.Cohesion.Sdk.Gateway`,

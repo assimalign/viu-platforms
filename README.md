@@ -233,10 +233,12 @@ and framework packs. To move to another Cohesion build, edit the two `global.jso
 nothing else:
 
 - `10.0.0-preview.0.ci.<run>` — a build of cohesion `main`, published by cohesion's
-  `ci-packages.yml` for every merge.
+  `ci-packages.yml` for every merge. The current pin is `10.0.0-preview.0.ci.185`, the cohesion
+  `main` build of e86d5dcc5, after the application-model restart (cohesion #1759 and #1784)
+  merged. No Cohesion preview release is planned for a while, so this repository follows cohesion
+  `main` CI builds.
 - `10.0.0-preview.0.pr.<pr>.<run>` — a build of an open cohesion pull request, for integrating
-  unreleased Cohesion work without packing it locally. The current pin is
-  `10.0.0-preview.0.pr.1759.172`, a build of cohesion PR #1759 (the application-model restart).
+  unreleased Cohesion work without packing it locally.
 - `10.0.0-preview.1` and later — releases.
 
 A CI pin is temporary: cohesion deletes a pull request's builds when it closes and keeps only the
