@@ -75,7 +75,7 @@ point to revisit per-RID folders. `ToolAssemblyPortabilityTests` pins the tool a
 The tool and its tests resolve the Web SDK through the `global.json` pin, avoiding mixed SDK resolver
 versions. The Server dependency remains a library despite the new Web SDK's executable default.
 Packing still publishes the managed Cohesion framework closure into `tools`; the deployable Web
-resource template consumes Server's client bundling targets directly instead of shipping this tool.
+site template (`viu-cohesion-web`) consumes Server's client bundling targets directly instead of shipping this tool.
 
 The development host supplies explicit content and manifest paths to `AddViuClient`; it does not
 infer a client project. Deployable Web sites use a normal `ProjectReference ViuClient="true"` and

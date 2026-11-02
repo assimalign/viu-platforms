@@ -4,7 +4,9 @@
 .DESCRIPTION
     Run Install-Local.ps1 first. Uses a fresh template hive, package cache and projects under _out.
     Viu and Cohesion stay on the generated authenticated feed; only the local platform feed is
-    redirected to this worktree's packages. Publishes Web with JIT hosting and a trimmed Browser.
+    redirected to this worktree's packages. Builds a site named my-site (paths keep the name as
+    given, namespaces use its safe form). Runs the site's gateway briefly, which hosts the Web
+    program in process, and probes the site. Publishes Web with JIT hosting and a trimmed Browser.
 #>
 [CmdletBinding()]
 param(
@@ -32,22 +34,28 @@ Set-Content -LiteralPath (Join-Path $fixture 'Directory.Build.props') -Value '<P
 Set-Content -LiteralPath (Join-Path $fixture 'Directory.Build.targets') -Value '<Project />'
 
 dotnet new install $packagePath --force --debug:custom-hive $hive
-foreach ($template in @(
-    @{ ShortName = 'viu-cohesion'; Name = 'TemplateBrowser'; Directory = 'browser' },
-    @{ ShortName = 'viu-cohesion-web'; Name = 'TemplateSite'; Directory = 'site' }
-)) {
-    $output = Join-Path $fixture $template.Directory
-    dotnet new $template.ShortName --name $template.Name --output $output --assimalignRoot $repositoryDirectory --debug:custom-hive $hive
+function New-TemplateConsumer([string] $ShortName, [string] $Name, [string] $Directory) {
+    $output = Join-Path $fixture $Directory
+    dotnet new $ShortName --name $Name --output $output --assimalignRoot $repositoryDirectory --debug:custom-hive $hive | Out-Host
     $configPath = Join-Path $output 'NuGet.config'
     [xml] $config = Get-Content -LiteralPath $configPath -Raw
     $config.SelectSingleNode('/configuration/packageSources/add[@key="viu-platforms-local"]').SetAttribute('value', $packageDirectory)
     $config.SelectSingleNode('/configuration/config/add[@key="globalPackagesFolder"]').SetAttribute('value', (Join-Path $fixture 'p'))
-    # Local is built in. Keep the optional external gateway feed out of this standalone lane.
+    # The in-process platform ships with Cohesion. Keep the optional cohesion-platforms feed out of
+    # this standalone lane.
     $externalSource = $config.SelectSingleNode('/configuration/packageSources/add[@key="cohesion-platforms-local"]')
     $null = $externalSource.ParentNode.RemoveChild($externalSource)
     $externalMapping = $config.SelectSingleNode('/configuration/packageSourceMapping/packageSource[@key="cohesion-platforms-local"]')
     $null = $externalMapping.ParentNode.RemoveChild($externalMapping)
     $config.Save($configPath)
+    return $output
+}
+
+foreach ($template in @(
+    @{ ShortName = 'viu-cohesion'; Name = 'TemplateBrowser'; Directory = 'browser' },
+    @{ ShortName = 'viu-cohesion-web'; Name = 'TemplateSite'; Directory = 'site' }
+)) {
+    $output = New-TemplateConsumer $template.ShortName $template.Name $template.Directory
     $project = if ($template.Directory -eq 'site') { Join-Path $output 'TemplateSite.Web/TemplateSite.Web.csproj' } else { Join-Path $output 'TemplateBrowser.csproj' }
     # One build restores the Browser through the Web ProjectReference; never restore Client alone.
     dotnet build $project --configuration $Configuration -p:TreatWarningsAsErrors=true -p:RestoreNoHttpCache=true
@@ -56,12 +64,45 @@ foreach ($template in @(
     }
 }
 
+# A name that is not a valid namespace: project paths keep the name as given (my-site.Web) while
+# namespaces use its safe form (my_site.Web), so every project and solution path must still resolve.
+$hyphenated = New-TemplateConsumer 'viu-cohesion-web' 'my-site' 'hyphen'
+dotnet build (Join-Path $hyphenated 'my-site.slnx') --configuration $Configuration -p:TreatWarningsAsErrors=true
+
+# The gateway runs the Web program in its own process: the site must answer at the endpoint the
+# gateway reports, and its client document must carry the identity the gateway gave it.
+$gatewayName = if ($IsWindows) { 'TemplateSite.Gateway.exe' } else { 'TemplateSite.Gateway' }
+$gateway = @(Get-ChildItem -LiteralPath (Join-Path $fixture "site/TemplateSite.Gateway/bin/$Configuration") -Recurse -Filter $gatewayName)[0].FullName
+$gatewayOutput = Join-Path $fixture 'gateway.out'
+$gatewayProcess = Start-Process -FilePath $gateway -WorkingDirectory (Split-Path $gateway -Parent) -RedirectStandardOutput $gatewayOutput -RedirectStandardError (Join-Path $fixture 'gateway.err') -PassThru -NoNewWindow
+try {
+    $endpoint = $null
+    for ($attempt = 0; $attempt -lt 120 -and -not $endpoint -and -not $gatewayProcess.HasExited; $attempt++) {
+        Start-Sleep -Milliseconds 500
+        $line = @(Get-Content -LiteralPath $gatewayOutput -ErrorAction SilentlyContinue) -match '^templatesite-web: (\S+)$' | Select-Object -First 1
+        if ($line -and $line -match '^templatesite-web: (\S+)$') { $endpoint = $Matches[1] }
+    }
+    if (-not $endpoint) {
+        throw "The gateway reported no endpoint for templatesite-web: $(Get-Content -LiteralPath $gatewayOutput -Raw -ErrorAction SilentlyContinue)"
+    }
+    $index = Invoke-WebRequest -Uri "$endpoint/" -UseBasicParsing
+    $document = Invoke-RestMethod -Uri "$endpoint/_cohesion/client.json"
+    if ($index.StatusCode -ne 200 -or $index.Content -notmatch '<html' -or
+        $document.application -ne 'templatesite' -or $document.resource -ne 'templatesite-web' -or $document.gateway -ne 'inprocess') {
+        throw "The in-process site answered unexpectedly: $($index.StatusCode); $($document | ConvertTo-Json -Compress)"
+    }
+    Write-Host "In-process gateway served templatesite-web at $endpoint" -ForegroundColor Green
+}
+finally {
+    if (-not $gatewayProcess.HasExited) { Stop-Process -Id $gatewayProcess.Id -Force }
+}
+
 $webProject = Join-Path $fixture 'site/TemplateSite.Web/TemplateSite.Web.csproj'
 $publication = Join-Path $fixture 'published'
 dotnet publish $webProject --configuration $Configuration -p:PublishAot=false -p:TreatWarningsAsErrors=true --output $publication
 if (-not (Test-Path -LiteralPath (Join-Path $publication 'wwwroot/index.html')) -or
     @(Get-ChildItem -LiteralPath (Join-Path $publication 'wwwroot/_framework') -Filter 'dotnet.*.js').Count -eq 0 -or
-    (Test-Path -LiteralPath (Join-Path $publication 'viu-client.json'))) {
+    @(Get-ChildItem -LiteralPath $publication -Filter '*viu-client.json').Count -ne 0) {
     throw 'Published Web must contain the complete client wwwroot and must omit the build-only client document.'
 }
 

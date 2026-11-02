@@ -55,7 +55,7 @@ internal sealed class ViuApplicationMiddleware : IWebApplicationMiddleware
         }
 
         string requestPath = context.Request.Path.Value;
-        if (ResourceRoutes.IsReserved(requestPath, _configuration.ControlPlanePath))
+        if (HealthProbeRoutes.IsReserved(requestPath))
         {
             await next.Invoke(context).ConfigureAwait(false);
             return;

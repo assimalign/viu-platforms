@@ -18,15 +18,15 @@
        UseClientOutput select the physical layout and miss the framework assets that only the
        client's own build output or ViuPublishClient provide. -->
 
-  <!-- viu-client.json names the client and its build output directory. As copy-to-output content
-       it sits beside the Web executable out of process and is staged into the member's resource
-       content root when a gateway hosts the Web resource in its own process, so UseClientOutput
-       never depends on the process-wide runtime configuration. It is never published: a published
-       Web resource serves the physical wwwroot that ViuPublishClient bundles. The document is a
+  <!-- <client>.viu-client.json names the client and its build output directory. As copy-to-output content
+       it sits beside the Web executable, and beside a gateway executable that references the Web
+       project to run it in its own process, so UseClientOutput never depends on the process-wide
+       runtime configuration. It is named for the client so the documents of several Web projects one
+       gateway references never overwrite each other. It is never published: a published Web
+       application serves the physical wwwroot that ViuPublishClient bundles. The document is a
        build output, so ViuResolveClientOutput adds its Content item; no obj path is a project item
        at evaluation time. -->
   <PropertyGroup>
-    <_ViuClientDocumentPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client.json'))</_ViuClientDocumentPath>
     <_ViuClientPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'viu-client-publish'))</_ViuClientPublishDir>
   </PropertyGroup>
 
@@ -54,7 +54,7 @@
   <!-- The public Browser SDK identity query returns evaluated output and manifest paths. It runs
        before AssignTargetPaths so the document exists before content is copied. -->
   <Target Name="ViuResolveClientOutput"
-          BeforeTargets="AssignTargetPaths;GenerateBuildRuntimeConfigurationFiles;CohesionCreateResourceManifest"
+          BeforeTargets="AssignTargetPaths;GenerateBuildRuntimeConfigurationFiles"
           DependsOnTargets="ViuValidateClientReference"
           Condition="'@(_ViuClientProject)' != ''">
     <MSBuild Projects="@(_ViuClientProject)" Targets="GetViuBrowserClientInfo" SkipNonexistentTargets="true"
@@ -69,19 +69,16 @@
       <_ViuClientOutput>@(_ViuClientTarget->'%(OutputDirectory)')</_ViuClientOutput>
       <_ViuClientRuntimeManifest>@(_ViuClientTarget->'%(StaticWebAssetsRuntimeManifestPath)')</_ViuClientRuntimeManifest>
       <_ViuClientEndpointsManifest>@(_ViuClientTarget->'%(StaticWebAssetsEndpointsManifestPath)')</_ViuClientEndpointsManifest>
+      <_ViuClientDocumentName>$(_ViuClientAssembly).viu-client.json</_ViuClientDocumentName>
+      <_ViuClientDocumentPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', '$(_ViuClientDocumentName)'))</_ViuClientDocumentPath>
       <_ViuClientDocument>{"client":"$(_ViuClientAssembly)","outputPath":"$(_ViuClientOutput.Replace('\', '\\').Replace('&quot;', '\&quot;'))","runtimeManifestPath":"$(_ViuClientRuntimeManifest.Replace('\', '\\').Replace('&quot;', '\&quot;'))","endpointsManifestPath":"$(_ViuClientEndpointsManifest.Replace('\', '\\').Replace('&quot;', '\&quot;'))"}</_ViuClientDocument>
     </PropertyGroup>
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_ViuClientDocumentPath)'))" />
     <WriteLinesToFile File="$(_ViuClientDocumentPath)" Lines="$(_ViuClientDocument)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup>
-      <Content Include="$(_ViuClientDocumentPath)" Link="viu-client.json"
+      <Content Include="$(_ViuClientDocumentPath)" Link="$(_ViuClientDocumentName)"
                CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
       <FileWrites Include="$(_ViuClientDocumentPath)" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(CohesionApplicationModel)' == 'enabled'">
-      <CohesionResourceProperty Include="web.viu.client" Value="$(_ViuClientAssembly)" />
-      <CohesionResourceProperty Include="web.viu.spa-fallback" Value="true" />
-      <CohesionResourceProperty Include="web.viu.base-path" Value="/" />
     </ItemGroup>
   </Target>
 

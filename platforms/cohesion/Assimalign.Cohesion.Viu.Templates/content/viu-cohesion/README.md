@@ -8,7 +8,7 @@ platform version `10.0.0-preview.1`.
 
 The generated `NuGet.config` maps local platform feeds, GitHub Packages and nuget.org.
 `--assimalignRoot C:/Source/repos/assimalign` when creating the template outside that directory.
-The Viu SDK pin is `10.0.0-preview.0.pr.379.5`; Cohesion packages restore from GitHub Packages.
+The Viu SDK pin is `10.0.0-preview.2`; Cohesion packages restore from GitHub Packages.
 
 ## Development loop
 

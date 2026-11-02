@@ -10,23 +10,24 @@
   "tags": { "language": "C#", "type": "solution" },
   "symbols": {
     "cohesionVersion": {
-      "type": "parameter", "dataType": "string", "defaultValue": "10.0.0-preview.0.ci.21",
+      "type": "parameter", "dataType": "string", "defaultValue": "10.0.0-preview.0.ci.185",
       "replaces": "__COHESION_PACKAGE_VERSION__", "description": "The complete Cohesion SDK/framework/library identity."
     },
     "assimalignRoot": {
       "type": "parameter", "dataType": "string", "defaultValue": "..",
       "replaces": "__ASSIMALIGN_ROOT__", "description": "Directory containing cohesion, viu, cohesion-platforms and viu-platforms local feeds."
     },
+    "projectName": {
+      "type": "generated", "generator": "regex",
+      "parameters": { "source": "name", "steps": [{ "regex": "^", "replacement": "" }] },
+      "replaces": "__PROJECT_NAME__",
+      "description": "The name exactly as given, for paths: the sourceName replacement in content is the namespace-safe form (my-site becomes my_site), which file renames do not use."
+    },
     "nameLower": { "type": "generated", "generator": "casing", "parameters": { "source": "name", "toLower": true } },
     "resource": {
       "type": "generated", "generator": "regex",
       "parameters": { "source": "nameLower", "steps": [{ "regex": "[^a-z0-9]+", "replacement": "-" }] },
       "replaces": "__APPLICATION_NAME__"
-    },
-    "member": {
-      "type": "generated", "generator": "regex",
-      "parameters": { "source": "name", "steps": [{ "regex": "[^A-Za-z0-9]+", "replacement": "" }] },
-      "replaces": "__MEMBER_PREFIX__"
     }
   },
   "primaryOutputs": [{ "path": "CohesionViuSite.slnx" }]

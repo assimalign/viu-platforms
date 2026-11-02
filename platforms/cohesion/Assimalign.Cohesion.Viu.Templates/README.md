@@ -3,7 +3,8 @@
 Version `10.0.0-preview.1` contains two templates:
 
 - `viu-cohesion`: one browser project with the Cohesion development server.
-- `viu-cohesion-web`: Client, enabled Web resource, and Local AppHost projects.
+- `viu-cohesion-web`: Client, Web, and Gateway projects; Web is a plain Cohesion Web application
+  that makes itself a managed resource, and Gateway runs it on the in-process platform.
 
 Cohesion and Viu restore from the authenticated Assimalign GitHub Packages feed; platform
 packages use the local feed. Install the
@@ -16,8 +17,10 @@ dotnet new viu-cohesion --name HelloViu --assimalignRoot C:/Source/repos/assimal
 ```
 
 Each generated README describes its build/run loop. SDK pins use Cohesion
-`10.0.0-preview.0.ci.21` and Viu `10.0.0-preview.0.pr.379.5`. Supply feed credentials through
+`10.0.0-preview.0.ci.185` (a cohesion `main` CI build; this repository follows those until a
+Cohesion preview release ships) and Viu `10.0.0-preview.2`. Supply feed credentials through
 `NuGetPackageSourceCredentials_assimalign`. Components use generated aggregates and typed roots/
-routes; Web uses `ProjectReference ViuClient="true"` and `services.AddViuClient()`. Local is the
-default gateway; Kubernetes requires explicit opt-in and gateway packages built against the same
-Cohesion pin.
+routes; Web uses `ProjectReference ViuClient="true"` and `services.AddViuClient()`. Another platform,
+such as the Kubernetes pair from `cohesion-platforms`, changes both projects: Web opts into the
+platform's instance package in `Program.cs`, and Gateway uses that platform's infrastructure instead
+of `InProcessInfrastructure` and its reference to Web.

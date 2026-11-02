@@ -9,6 +9,9 @@
   <ItemGroup>
     <KnownFrameworkReference Update="Assimalign.Cohesion.App;Assimalign.Cohesion.App.Web"
                              RuntimePackAlwaysCopyLocal="true" />
+    <!-- The in-process platform pair: the site program opts into it, and the gateway test runs it. -->
+    <PackageReference Include="Assimalign.Cohesion.ApplicationModel.Gateway.InProcess" />
+    <PackageReference Include="Assimalign.Cohesion.ApplicationModel.Hosting.InProcess" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Shouldly" />

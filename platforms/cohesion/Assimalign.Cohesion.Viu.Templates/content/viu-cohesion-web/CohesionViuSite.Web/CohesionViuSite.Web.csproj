@@ -1,14 +1,17 @@
 <Project Sdk="Assimalign.Cohesion.Sdk.Web">
+  <!-- An ordinary Web application serving the Viu client. Program.cs makes it the __APPLICATION_NAME__-web resource
+       of the gateway's model; the in-process platform's instance half is the one Cohesion package it adds. -->
   <PropertyGroup>
-    <CohesionApplicationModel>enabled</CohesionApplicationModel>
-    <CohesionApplicationName>__APPLICATION_NAME__</CohesionApplicationName>
-    <CohesionResourceName>__APPLICATION_NAME__-web</CohesionResourceName>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+    <RootNamespace>CohesionViuSite.Web</RootNamespace>
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Assimalign.Cohesion.Viu.Server" Version="10.0.0-preview.1" />
-    <ProjectReference Include="../CohesionViuSite.Client/CohesionViuSite.Client.csproj" ViuClient="true" />
-    <CohesionEndpoint Update="http" Public="true" DevPort="8080" />
+    <CohesionPackageReference Include="Assimalign.Cohesion.ApplicationModel.Hosting.InProcess" Version="$(CohesionVersion)" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- PrivateAssets keeps the browser client out of the gateway's references when the gateway references this project. -->
+    <ProjectReference Include="../__PROJECT_NAME__.Client/__PROJECT_NAME__.Client.csproj" ViuClient="true" PrivateAssets="all" />
   </ItemGroup>
 </Project>

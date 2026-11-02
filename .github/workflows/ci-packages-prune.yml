@@ -1,6 +1,6 @@
 # Keeps the GitHub Packages feed that .github/workflows/ci-packages.yml fills usable.
 #
-# ci-packages.yml publishes the full release set, 8 package versions, for every push to main and
+# ci-packages.yml publishes the full release set, 7 package versions, for every push to main and
 # every commit to an open same-repository pull request. This workflow deletes two kinds of them and
 # nothing else:
 #
@@ -69,7 +69,7 @@ jobs:
       (github.event.pull_request.head.repo.full_name == github.repository &&
        github.actor != 'dependabot[bot]')
     runs-on: ubuntu-24.04
-    # A run lists 8 packages and deletes at most a few builds' worth, a second apart. The module
+    # A run lists 7 packages and deletes at most a few builds' worth, a second apart. The module
     # stops starting requests after 45 minutes; 60 bounds a run that a secondary rate limit slows.
     timeout-minutes: 60
     permissions:

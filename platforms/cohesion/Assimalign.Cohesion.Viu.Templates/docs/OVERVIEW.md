@@ -14,15 +14,20 @@ The generated project contains:
 - a `NuGet.config` mapping the configurable sibling local platform feeds, GitHub Packages and nuget.org.
 
 The template pins `Assimalign.Viu.Sdk` and `Assimalign.Viu.Sdk.Browser` to
-`10.0.0-preview.0.pr.379.5` in `global.json`. This keeps project evaluation deterministic before NuGet can
+`10.0.0-preview.2` in `global.json`. This keeps project evaluation deterministic before NuGet can
 restore the SDK packages.
 
-## Deployable Web resource template
+## Deployable Web site template
 
-Version `10.0.0-preview.1` adds `viu-cohesion-web`, producing Client, Web, AppHost and a solution.
-Pass `--assimalignRoot` when the output is outside the sibling-checkout directory. Cohesion SDKs default to `10.0.0-preview.0.ci.21`; Viu uses PR #379 build 5.
-Web declares its client with a normal `ProjectReference` marked `ViuClient="true"`, and AppHost defaults to Local; Kubernetes requires matching gateway packages. See the
-[generated README](../content/viu-cohesion-web/README.md) for build, run and container commands.
+`viu-cohesion-web` produces Client, Web, Gateway and a solution. Pass `--assimalignRoot` when the
+output is outside the sibling-checkout directory. Cohesion SDKs default to
+`10.0.0-preview.0.ci.185`, the cohesion `main` CI build the repository's `global.json` pins
+(`--cohesionVersion` selects another identity).
+Web declares its client with a normal `ProjectReference` marked `ViuClient="true"` and makes itself
+a managed resource with `builder.Services.AddResource(name, resource => resource.UseInProcess())`;
+run on its own, it is a plain Web application. Gateway, on `Assimalign.Cohesion.Sdk.Gateway`,
+registers Web's `Program.MainAsync` on an `InProcessInfrastructure` and runs the model. See the
+[generated README](../content/viu-cohesion-web/README.md) for build and run commands.
 
 Both templates request generated aggregates through `AddComponents()`, choose typed roots with
 `UseRootComponent<App>()` and add typed Counter routes through `routing.Routes.Add<Counter>`.
@@ -31,6 +36,7 @@ participate in restore before build; Server metadata suppresses compile referenc
 `ViuClientReference` items are retired. Server rendering can be added with
 `services.AddViuServerRendering` and the predicate-only `UseViuServerRenderer` overload.
 
-After packing, run `pwsh scripts/tests/Test-Templates.ps1` for isolated template builds,
-Web publication with a trimmed client, and a packed SSR consumer using a referenced Viu catalog.
-The lane keeps its hive, cache and generated projects under `_out` and treats warnings as errors.
+After packing, run `pwsh scripts/tests/Test-Templates.ps1` for isolated template builds, a brief
+run of the site's in-process gateway, Web publication with a trimmed client, and a packed SSR
+consumer using a referenced Viu catalog. The lane keeps its hive, cache and generated projects
+under `_out` and treats warnings as errors.

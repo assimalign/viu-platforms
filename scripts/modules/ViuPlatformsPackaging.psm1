@@ -17,20 +17,15 @@
 
 Set-StrictMode -Version Latest
 
-# Every published Viu Platforms package, in dependency-safe publication order. ApplicationModel has
-# no project dependency; Hosting is the base of Markdown, Hosting.Browser, Routing, and Server;
-# DevServer packs Server; the template pack is content only.
+# Every published Viu Platforms package, in dependency-safe publication order. Hosting is the base
+# of Markdown, Hosting.Browser, Routing, and Server; DevServer packs Server; the template pack is
+# content only.
 #
 # RequiredEntry names the package paths a consumer loads by convention: the readme, MSBuild props
 # and targets, analyzers, and tools. Assert-ViuPlatformsPackageLayout fails a pack that misplaces
 # one, because NuGet still produces a package when a PackagePath is wrong, and the consumer then
 # silently ignores the asset.
 $script:ViuPlatformsReleasePackage = @(
-    [pscustomobject]@{
-        Id            = 'Assimalign.Cohesion.Viu.ApplicationModel'
-        Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.ApplicationModel/src/Assimalign.Cohesion.Viu.ApplicationModel.csproj'
-        RequiredEntry = @('README.md', 'lib/net10.0/Assimalign.Cohesion.Viu.ApplicationModel.dll')
-    }
     [pscustomobject]@{
         Id            = 'Assimalign.Cohesion.Viu.Hosting'
         Project       = 'platforms/cohesion/Assimalign.Cohesion.Viu.Hosting/src/Assimalign.Cohesion.Viu.Hosting.csproj'
